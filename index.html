@@ -3,54 +3,51 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Comparador de imágenes | Slider (Fix)</title>
+  <title>Comparador de imágenes | Slider (anclado)</title>
   <style>
-    :root{
-      --bg: #0f172a;
-      --panel: #111827;
-      --text: #e5e7eb;
-    }
-    *{box-sizing:border-box}
+    :root{ --bg:#0f172a; --panel:#111827; --text:#e5e7eb; }
+    *{ box-sizing:border-box }
     body{
-      margin:0; min-height:100vh; background:#0f172a; color:var(--text);
+      margin:0; min-height:100vh; background:var(--bg); color:var(--text);
       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto;
-      display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px;
+      display:flex; flex-direction:column; gap:12px; align-items:center; padding:24px;
     }
-    h1{margin:0 0 6px}
     .uploader{display:flex; gap:18px; flex-wrap:wrap; width:100%; max-width:1100px}
     .uploader label{display:flex; align-items:center; gap:8px}
+
     .compare{
-      position:relative;
-      width:100%; max-width:1100px;
-      aspect-ratio: 16/9; /* se ajusta dinámicamente según la imagen */
+      position:relative; width:100%; max-width:1100px;
+      aspect-ratio:16/9; /* se ajusta con la primera imagen cargada */
       background:var(--panel); border-radius:14px; overflow:hidden;
-      box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.05);
+      box-shadow:0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.05);
       user-select:none;
     }
-    /* IMPORTANTE: ambas imágenes son absolutas */
+
+    /* Ambas imágenes ocupan toda la caja y NO cambian de tamaño al mover el slider */
     .compare img{
-      position:absolute; inset:0;
-      width:100%; height:100%;
-      object-fit:cover; /* o 'contain' si no querés recorte */
-      pointer-events:none;
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:cover; pointer-events:none;
     }
+    /* Anclajes para evitar “corrimiento” al variar el ancho visible */
+    #imgLeft  { object-position:left  center; }  /* anclada al borde izquierdo */
+    #imgRight { object-position:right center; }  /* anclada al borde derecho  */
+
     .overlay{position:absolute; inset:0; width:50%; overflow:hidden}
     .divider{position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%);
-      width:2px; background:rgba(255,255,255,.85)}
+      width:2px; background:rgba(255,255,255,.9)}
     .handle{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
       width:38px; height:38px; border-radius:9999px; background:#fff; color:#000;
       display:grid; place-items:center; font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,.35)}
-    .range{position:absolute; inset:0; appearance:none; -webkit-appearance:none; background:transparent; cursor:ew-resize; opacity:0}
-    .range::-webkit-slider-thumb{appearance:none; -webkit-appearance:none; width:1px; height:1px}
+    .range{position:absolute; inset:0; appearance:none; background:transparent; opacity:0; cursor:ew-resize}
+    .range::-webkit-slider-thumb{appearance:none; width:1px; height:1px}
     .range::-moz-range-thumb{width:1px; height:1px; border:0}
   </style>
 </head>
 <body>
   <h1>Comparador de imágenes</h1>
-  <p>Subí dos imágenes y usá el slider. Arreglado para que no se escale.</p>
   <div class="uploader">
-    <label>Imagen izquierda: <input type="file" id="fileLeft" accept="image/*"></label>
-    <label>Imagen derecha: <input type="file" id="fileRight" accept="image/*"></label>
+    <label>Imagen izquierda: <input type="file" id="fileLeft"  accept="image/*"></label>
+    <label>Imagen derecha:  <input type="file" id="fileRight" accept="image/*"></label>
   </div>
 
   <section class="compare" id="compare" aria-label="Comparador de imágenes">
@@ -59,26 +56,26 @@
       <img id="imgLeft" alt="Imagen izquierda" />
     </div>
     <div class="divider" id="divider"></div>
-    <div class="handle" id="handle">⇔</div>
+    <div class="handle"  id="handle">⇔</div>
     <input id="range" class="range" type="range" min="0" max="100" value="50" />
   </section>
 
   <script>
-    const q = s => document.querySelector(s);
-    const compare = q('#compare');
-    const imgLeft = q('#imgLeft');
-    const imgRight = q('#imgRight');
-    const overlay = q('#overlay');
-    const divider = q('#divider');
-    const handle = q('#handle');
-    const range = q('#range');
-    const fileLeft = q('#fileLeft');
-    const fileRight = q('#fileRight');
+    const $ = s => document.querySelector(s);
+    const compare = $('#compare');
+    const imgLeft = $('#imgLeft');
+    const imgRight = $('#imgRight');
+    const overlay = $('#overlay');
+    const divider = $('#divider');
+    const handle = $('#handle');
+    const range = $('#range');
+    const fileLeft = $('#fileLeft');
+    const fileRight = $('#fileRight');
 
     function applyPosition(pct){
       overlay.style.width = pct + '%';
       divider.style.left = pct + '%';
-      handle.style.left = pct + '%';
+      handle.style.left  = pct + '%';
     }
     applyPosition(50);
 
@@ -87,10 +84,10 @@
       r.onload = e => cb(e.target.result);
       r.readAsDataURL(file);
     }
-
     function updateAspectFrom(img){
-      if(!img || !img.naturalWidth) return;
-      compare.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
+      if (img.naturalWidth && img.naturalHeight) {
+        compare.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
+      }
     }
 
     fileLeft.addEventListener('change', () => {
@@ -102,20 +99,16 @@
       fileToDataURL(f, url => { imgRight.src = url; });
     });
 
-    imgLeft.addEventListener('load', () => {
-      if(!imgRight.src) updateAspectFrom(imgLeft);
-    });
-    imgRight.addEventListener('load', () => {
-      updateAspectFrom(imgRight); // priorizamos la derecha
-    });
+    imgLeft.addEventListener('load',  () => { if(!imgRight.src) updateAspectFrom(imgLeft);  });
+    imgRight.addEventListener('load', () => { updateAspectFrom(imgRight); });
 
     range.addEventListener('input', e => applyPosition(e.target.value));
 
-    // soporte drag con mouse/touch
+    // Drag/touch en toda el área
     let dragging = false;
-    const setFromX = clientX => {
-      const rect = compare.getBoundingClientRect();
-      const p = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    const setFromX = x => {
+      const r = compare.getBoundingClientRect();
+      const p = Math.min(1, Math.max(0, (x - r.left) / r.width));
       applyPosition(p * 100);
     };
     compare.addEventListener('mousedown', e => { dragging = true; setFromX(e.clientX); });
