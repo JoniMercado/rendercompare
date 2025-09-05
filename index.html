@@ -1,14 +1,24 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Render Comparer</title>
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="Logo_Rehecho_v7_avatar.png" />
+
+  <!-- Favicon (asegurate que el archivo exista junto a index.html) -->
+  <link rel="icon" href="./Logo_Rehecho_v7_avatar.png?v=3" type="image/png" sizes="32x32">
+  <link rel="shortcut icon" href="./Logo_Rehecho_v7_avatar.png?v=3" type="image/png">
+  <link rel="apple-touch-icon" href="./Logo_Rehecho_v7_avatar.png?v=3">
+
   <style>
-    :root{ --bg:#0f172a; --panel:#000; --text:#e5e7eb; }
-    *{ box-sizing:border-box }
+    :root{
+      --bg:#000;         /* fondo del sitio */
+      --panel:#1a1a1a;   /* fondo del viewer */
+      --text:#e5e7eb;
+      --hint:rgba(255,255,255,.08);
+      --hint-strong:rgba(255,255,255,.25);
+    }
+    *{box-sizing:border-box}
     body{
       margin:0; min-height:100vh; background:var(--bg); color:var(--text);
       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto;
@@ -22,18 +32,24 @@
       position:relative; width:100%; max-width:1100px;
       aspect-ratio:16/9;
       background:var(--panel); border-radius:14px; overflow:hidden;
-      box-shadow:0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.05);
+      box-shadow:0 10px 28px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05);
       user-select:none;
     }
+    .compare.dragging{ outline:2px dashed var(--hint-strong); outline-offset:-6px }
+    .compare.dragging .drop-overlay{ opacity:1 }
 
+    /* imágenes fijas en toda la caja */
     .compare img{
       position:absolute; inset:0; width:100%; height:100%;
-      object-fit:cover; pointer-events:none;
+      object-fit:cover; pointer-events:none; visibility:hidden;
     }
     #imgLeft  { object-position:left  center; }
     #imgRight { object-position:right center; }
 
+    /* capa izquierda recortada por el slider */
     .overlay{position:absolute; inset:0; width:50%; overflow:hidden}
+
+    /* slider */
     .divider{position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%);
       width:2px; background:rgba(255,255,255,.9)}
     .handle{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -43,33 +59,63 @@
     .range::-webkit-slider-thumb{appearance:none; width:1px; height:1px}
     .range::-moz-range-thumb{width:1px; height:1px; border:0}
 
-    footer{
-      margin-top:10px;
-      font-size:12px;
-      color:#888;
+    /* labels dentro del viewer */
+    .badge{
+      position:absolute; top:10px; padding:.38rem .6rem; font-size:13px; line-height:1;
+      color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.08);
+      border-radius:10px; backdrop-filter:blur(6px); pointer-events:none; z-index:5;
     }
+    .badge.left{left:10px}
+    .badge.right{right:10px}
+
+    /* overlay de drop con pistas a izquierda/derecha */
+    .drop-overlay{
+      position:absolute; inset:0; display:grid; grid-template-columns:1fr 1fr;
+      opacity:0; transition:opacity .15s ease; pointer-events:none; z-index:6;
+    }
+    .drop-zone{
+      display:flex; align-items:flex-start; justify-content:space-between;
+      padding:10px;
+    }
+    .drop-zone span{
+      font-size:12px; color:#ddd; background:rgba(255,255,255,.07);
+      border:1px solid var(--hint); border-radius:10px; padding:.35rem .55rem;
+    }
+    .drop-left{ border-right:1px dashed var(--hint) }
+    .drop-right{ border-left:1px dashed var(--hint) }
+
+    footer{margin-top:10px; font-size:12px; color:#888}
   </style>
 </head>
 <body>
   <h1>Render Comparer</h1>
+
   <div class="uploader">
     <label>Old Image: <input type="file" id="fileLeft"  accept="image/*"></label>
     <label>New Image: <input type="file" id="fileRight" accept="image/*"></label>
   </div>
 
-  <section class="compare" id="compare" aria-label="Comparador de imágenes">
+  <section class="compare" id="compare" aria-label="Image comparison">
     <img id="imgRight" alt="New image" />
     <div class="overlay" id="overlay">
       <img id="imgLeft" alt="Old image" />
     </div>
+
+    <!-- pistas de drop -->
+    <div class="drop-overlay" id="dropOverlay" aria-hidden="true">
+      <div class="drop-zone drop-left"><span>Drop here → Old</span></div>
+      <div class="drop-zone drop-right"><span>New ← Drop here</span></div>
+    </div>
+
+    <span class="badge left">Old</span>
+    <span class="badge right">New</span>
+
     <div class="divider" id="divider"></div>
-    <div class="handle"  id="handle">⇔</div>
+    <div class="handle" id="handle" title="Drag">⇔</div>
     <input id="range" class="range" type="range" min="0" max="100" value="50" />
   </section>
 
-  <footer>
-    Made by Joni Mercado
-  </footer>
+  <footer>Made by Joni Mercado</footer>
 
   <script>
     const $ = s => document.querySelector(s);
@@ -82,6 +128,7 @@
     const range = $('#range');
     const fileLeft = $('#fileLeft');
     const fileRight = $('#fileRight');
+    const dropOverlay = $('#dropOverlay');
 
     function applyPosition(pct){
       overlay.style.width = pct + '%';
@@ -95,26 +142,35 @@
       r.onload = e => cb(e.target.result);
       r.readAsDataURL(file);
     }
+    function setImg(target, url){
+      if (target === 'left') imgLeft.src = url; else imgRight.src = url;
+    }
     function updateAspectFrom(img){
       if (img.naturalWidth && img.naturalHeight) {
         compare.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
       }
     }
+    function revealOnLoad(img, preferRight=false){
+      img.addEventListener('load', () => {
+        img.style.visibility = 'visible';
+        if (preferRight) updateAspectFrom(imgRight); else if (!imgRight.src) updateAspectFrom(imgLeft);
+      }, { once:true });
+    }
+    revealOnLoad(imgLeft);
+    revealOnLoad(imgRight, true);
 
+    // Inputs
     fileLeft.addEventListener('change', () => {
       const f = fileLeft.files[0]; if(!f) return;
-      fileToDataURL(f, url => { imgLeft.src = url; });
+      fileToDataURL(f, url => setImg('left', url));
     });
     fileRight.addEventListener('change', () => {
       const f = fileRight.files[0]; if(!f) return;
-      fileToDataURL(f, url => { imgRight.src = url; });
+      fileToDataURL(f, url => setImg('right', url));
     });
 
-    imgLeft.addEventListener('load',  () => { if(!imgRight.src) updateAspectFrom(imgLeft);  });
-    imgRight.addEventListener('load', () => { updateAspectFrom(imgRight); });
-
+    // Drag slider
     range.addEventListener('input', e => applyPosition(e.target.value));
-
     let dragging = false;
     const setFromX = x => {
       const r = compare.getBoundingClientRect();
@@ -127,6 +183,48 @@
     compare.addEventListener('touchstart', e => { dragging = true; setFromX(e.touches[0].clientX); }, {passive:true});
     window.addEventListener('touchmove', e => { if(dragging) setFromX(e.touches[0].clientX); }, {passive:true});
     window.addEventListener('touchend', () => dragging = false);
+
+    // Drag & Drop
+    ['dragenter','dragover'].forEach(ev =>
+      compare.addEventListener(ev, e => {
+        e.preventDefault(); e.stopPropagation();
+        compare.classList.add('dragging');
+      })
+    );
+    ['dragleave','drop'].forEach(ev =>
+      compare.addEventListener(ev, e => {
+        if (ev === 'dragleave' && e.target !== compare) return;
+        compare.classList.remove('dragging');
+      })
+    );
+    compare.addEventListener('drop', e => {
+      e.preventDefault();
+      const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/'));
+      if (!files.length) return;
+
+      const rect = compare.getBoundingClientRect();
+      const x = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? (rect.left + rect.width/2);
+      const leftHalf = (x - rect.left) / rect.width <= 0.5;
+
+      if (files.length === 1){
+        const target = leftHalf ? 'left' : 'right';
+        fileToDataURL(files[0], url => setImg(target, url));
+      } else {
+        // primera a Old, segunda a New
+        fileToDataURL(files[0], url => setImg('left', url));
+        fileToDataURL(files[1], url => setImg('right', url));
+      }
+    });
+
+    // Paste from clipboard (Ctrl+V)
+    window.addEventListener('paste', e => {
+      const items = [...(e.clipboardData?.items || [])];
+      const imgItem = items.find(i => i.type.startsWith('image/'));
+      if (!imgItem) return;
+      const file = imgItem.getAsFile(); if (!file) return;
+      const target = imgLeft.src ? 'right' : 'left';
+      fileToDataURL(file, url => setImg(target, url));
+    });
   </script>
 </body>
 </html>
