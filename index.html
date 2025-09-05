@@ -3,34 +3,35 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Comparador de imágenes | Slider (anclado)</title>
+  <title>Render Comparer</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="Logo_Rehecho_v7_avatar.png" />
   <style>
-    :root{ --bg:#0f172a; --panel:#111827; --text:#e5e7eb; }
+    :root{ --bg:#0f172a; --panel:#000; --text:#e5e7eb; }
     *{ box-sizing:border-box }
     body{
       margin:0; min-height:100vh; background:var(--bg); color:var(--text);
       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto;
-      display:flex; flex-direction:column; gap:12px; align-items:center; padding:24px;
+      display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px;
     }
+    h1{margin:0 0 6px}
     .uploader{display:flex; gap:18px; flex-wrap:wrap; width:100%; max-width:1100px}
     .uploader label{display:flex; align-items:center; gap:8px}
 
     .compare{
       position:relative; width:100%; max-width:1100px;
-      aspect-ratio:16/9; /* se ajusta con la primera imagen cargada */
+      aspect-ratio:16/9;
       background:var(--panel); border-radius:14px; overflow:hidden;
       box-shadow:0 10px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.05);
       user-select:none;
     }
 
-    /* Ambas imágenes ocupan toda la caja y NO cambian de tamaño al mover el slider */
     .compare img{
       position:absolute; inset:0; width:100%; height:100%;
       object-fit:cover; pointer-events:none;
     }
-    /* Anclajes para evitar “corrimiento” al variar el ancho visible */
-    #imgLeft  { object-position:left  center; }  /* anclada al borde izquierdo */
-    #imgRight { object-position:right center; }  /* anclada al borde derecho  */
+    #imgLeft  { object-position:left  center; }
+    #imgRight { object-position:right center; }
 
     .overlay{position:absolute; inset:0; width:50%; overflow:hidden}
     .divider{position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%);
@@ -41,24 +42,34 @@
     .range{position:absolute; inset:0; appearance:none; background:transparent; opacity:0; cursor:ew-resize}
     .range::-webkit-slider-thumb{appearance:none; width:1px; height:1px}
     .range::-moz-range-thumb{width:1px; height:1px; border:0}
+
+    footer{
+      margin-top:10px;
+      font-size:12px;
+      color:#888;
+    }
   </style>
 </head>
 <body>
-  <h1>Comparador de imágenes</h1>
+  <h1>Render Comparer</h1>
   <div class="uploader">
-    <label>Imagen izquierda: <input type="file" id="fileLeft"  accept="image/*"></label>
-    <label>Imagen derecha:  <input type="file" id="fileRight" accept="image/*"></label>
+    <label>Old Image: <input type="file" id="fileLeft"  accept="image/*"></label>
+    <label>New Image: <input type="file" id="fileRight" accept="image/*"></label>
   </div>
 
   <section class="compare" id="compare" aria-label="Comparador de imágenes">
-    <img id="imgRight" alt="Imagen derecha" />
+    <img id="imgRight" alt="New image" />
     <div class="overlay" id="overlay">
-      <img id="imgLeft" alt="Imagen izquierda" />
+      <img id="imgLeft" alt="Old image" />
     </div>
     <div class="divider" id="divider"></div>
     <div class="handle"  id="handle">⇔</div>
     <input id="range" class="range" type="range" min="0" max="100" value="50" />
   </section>
+
+  <footer>
+    Made by Joni Mercado
+  </footer>
 
   <script>
     const $ = s => document.querySelector(s);
@@ -104,7 +115,6 @@
 
     range.addEventListener('input', e => applyPosition(e.target.value));
 
-    // Drag/touch en toda el área
     let dragging = false;
     const setFromX = x => {
       const r = compare.getBoundingClientRect();
