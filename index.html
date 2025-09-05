@@ -48,8 +48,10 @@
     }
     .layer{ position:absolute; inset:0; z-index:1; }
     .layer img{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
     #backRight{ object-fit:contain; object-position:center; opacity:.5; z-index:1 }
     #imgRight { object-fit:cover;   object-position:right center; visibility:hidden; z-index:2 }
+
     #layerLeft{ z-index:3; clip-path: polygon(0 0, var(--pos) 0, var(--pos) 100%, 0 100%) }
     .solid-bg-left{ position:absolute; inset:0; background:var(--panel); z-index:0 }
     #backLeft{ object-fit:contain; object-position:center; opacity:.5; z-index:1 }
@@ -128,6 +130,7 @@
   <footer>Made by <a href="https://www.jonatanmercado.com" target="_blank" rel="noopener noreferrer">Joni Mercado</a></footer>
 
   <script>
+    /* Cloudinary (unsigned) */
     const CLOUDINARY = { cloudName: 'dftensenq', uploadPreset: 'jonatan' };
     const CLOUD_BASE = `https://res.cloudinary.com/${CLOUDINARY.cloudName}/image/upload/f_auto,q_auto/`;
 
@@ -143,6 +146,7 @@
     const SHARE_KEY='viewer:shareable';
     const ids={left:'',right:''};
 
+    /* Shareable UI */
     function updateShareHint(){
       shareHint.textContent = shareableChk.checked
         ? 'Shareable ON — new images will upload publicly for short links.'
@@ -155,7 +159,6 @@
         ? 'Generate short link (uses public ids)'
         : (shareableChk.checked?'Upload both images to enable sharing':'Enable "Shareable" to share');
     }
-
     shareableChk.checked=localStorage.getItem(SHARE_KEY)==='1';
     updateShareHint(); refreshShareButton();
     shareableChk.addEventListener('change',()=>{
@@ -168,9 +171,9 @@
       updateShareHint(); refreshShareButton();
     });
 
+    /* Slider */
     function setPosition(pct){ root.style.setProperty('--pos',pct+'%'); savePos(); }
     range.addEventListener('input',e=>setPosition(e.target.value));
-
     let dragging=false;
     const setFromX=x=>{
       const r=compare.getBoundingClientRect();
@@ -184,6 +187,7 @@
     window.addEventListener('touchmove',e=>{if(dragging)setFromX(e.touches[0].clientX);},{passive:true});
     window.addEventListener('touchend',()=>{dragging=false;compare.classList.remove('dragging');});
 
+    /* Drag & drop */
     compare.addEventListener('dragover',e=>{e.preventDefault();});
     compare.addEventListener('drop',async e=>{
       e.preventDefault();
@@ -195,6 +199,7 @@
       else{ await handleFile(files[0],'left'); await handleFile(files[1],'right'); }
     });
 
+    /* Upload helpers */
     function fileToDataURL(file){return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}
     async function uploadToCloudinary(file){
       const url=`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`;
@@ -215,6 +220,7 @@
     }
     function setImg(side,url){ (side==='left'?imgLeft:imgRight).src=url; }
 
+    /* Aspect / presets */
     function setCustom(w,h){
       compare.style.aspectRatio=`${w}/${h}`; root.style.setProperty('--maxw',w+'px');
       const aspect=(w/h).toFixed(2), mpx=(w*h/1e6).toFixed(2);
@@ -243,6 +249,7 @@
     fileLeft.addEventListener('change',async()=>{const f=fileLeft.files[0];if(!f)return;await handleFile(f,'left');});
     fileRight.addEventListener('change',async()=>{const f=fileRight.files[0];if(!f)return;await handleFile(f,'right');});
 
+    /* Persistence */
     function savePos(){const pos=+getComputedStyle(root).getPropertyValue('--pos').replace('%','')||50;localStorage.setItem('viewer:pos',String(pos));}
     function restoreLocal(){
       const pos=+(localStorage.getItem('viewer:pos')||'50');setPosition(pos);range.value=pos;
@@ -252,6 +259,7 @@
       if(custom&&custom.w&&custom.h) enableCustom(custom.w,custom.h);
     }
 
+    /* Build short link */
     function buildShortLink(){
       if(!canShare()){ alert('Sharing is disabled. Enable "Shareable" and upload both images to generate a link.'); return null; }
       const base=location.origin+location.pathname;
@@ -261,13 +269,13 @@
       const hash=`#c=${encodeURIComponent(ids.left)},${encodeURIComponent(ids.right)};p=${pos}${ar?`;ar=${ar}`:''}`;
       return base+hash;
     }
-
     genLinkShortBtn.addEventListener('click',async()=>{
       const link=buildShortLink(); if(!link) return;
       await navigator.clipboard.writeText(link).catch(()=>{});
       const old=genLinkShortBtn.textContent; genLinkShortBtn.textContent='Link copied!'; setTimeout(()=>genLinkShortBtn.textContent=old,1200);
     });
 
+    /* Copy embed */
     function embedSnippet(src){
       return `<iframe src="${src}" title="Render Compare by Joni Mercado" width="100%" height="600" style="border:0; background:#000;" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
     }
@@ -277,10 +285,55 @@
       const old=copyBtn.textContent; copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent=old,1200);
     });
 
+    /* Restore from short hash: #c=<l>,<r>;p=NN;ar=WxH */
+    function restoreFromHash(){
+      const raw = location.hash.replace(/^#/, '');
+      if (!raw || !raw.startsWith('c=')) return false;
+
+      const parts = Object.fromEntries(
+        raw.split(';').map(kv => {
+          const [k, v] = kv.split('=');
+          return [k, decodeURIComponent(v || '')];
+        })
+      );
+
+      const [lId, rId] = (parts.c || '').split(',');
+      if (lId) { ids.left  = lId; setImg('left',  CLOUD_BASE + lId); }
+      if (rId) { ids.right = rId; setImg('right', CLOUD_BASE + rId); }
+
+      if (parts.p){
+        const p = Math.max(0, Math.min(100, +parts.p || 50));
+        root.style.setProperty('--pos', p + '%'); range.value = p;
+      }
+      if (parts.ar){
+        const [w,h] = parts.ar.split('x').map(n=>+n||0);
+        if (w&&h){
+          compare.style.aspectRatio = `${w}/${h}`;
+          root.style.setProperty('--maxw', w + 'px');
+          const aspect=(w/h).toFixed(2), mpx=(w*h/1e6).toFixed(2);
+          resInfo.textContent=`Custom — ${w}×${h} • Aspect ${aspect}:1 • ${mpx} Mpx`;
+          resBadge.textContent=`Viewer: Custom • ${w}×${h}`;
+          customBtn.disabled=false; customBtn.dataset.w=w; customBtn.dataset.h=h; customBtn.textContent=`Custom (${w}×${h})`;
+          localStorage.setItem('viewer:preset', JSON.stringify({ w, h, name:'Custom', mpx, custom:true }));
+          localStorage.setItem('viewer:custom', JSON.stringify({ w, h }));
+        }
+      }
+      // Al abrir desde link, aunque shareable esté OFF, hay imágenes hosteadas,
+      // así que permitimos habilitar el botón si el usuario enciende Shareable después.
+      refreshShareButton();
+      return true;
+    }
+
+    /* Init */
     (function init(){
       shareableChk.checked = localStorage.getItem(SHARE_KEY)==='1';
       updateShareHint(); refreshShareButton();
-      restoreLocal();
+
+      // Si viene un link corto, restauramos desde el hash; si no, restauramos preferencias locales
+      if (!restoreFromHash()){
+        restoreLocal();
+      }
+
       if(!localStorage.getItem('viewer:pos')) setPosition(50);
     })();
   </script>
