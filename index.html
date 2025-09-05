@@ -27,9 +27,18 @@
     }
 
     /* Título con icono */
-    .brand{ display:flex; align-items:center; gap:10px; margin:0 0 6px; }
+    .brand{ display:flex; align-items:center; gap:10px; margin:0 0 6px; width:100%; max-width:var(--maxw); }
     .brand h1{ margin:0; font-size:clamp(18px,3vw,28px); font-weight:700; }
     .brand .logo{ width:32px; height:32px; border-radius:6px; display:block; }
+
+    /* Presets de resolución */
+    .presets{ display:flex; gap:8px; flex-wrap:wrap; width:100%; max-width:var(--maxw); align-items:center }
+    .presets button{
+      background:#111; color:#eee; border:1px solid #2a2a2a; border-radius:10px;
+      padding:.45rem .6rem; font-size:13px; cursor:pointer;
+    }
+    .presets button:hover{ background:#171717 }
+    .presets .info{ margin-left:auto; font-size:12px; color:#9aa4b2; }
 
     .uploader{display:flex; gap:18px; flex-wrap:wrap; width:100%; max-width:var(--maxw)}
     .uploader label{display:flex; align-items:center; gap:8px}
@@ -38,19 +47,15 @@
 
     .compare{
       position:relative; width:100%;
-      aspect-ratio:16/9;  /* se puede cambiar por presets si querés */
+      aspect-ratio:16/9;  /* se puede cambiar con presets o al cargar imágenes */
       background:var(--panel); border-radius:14px; overflow:hidden;
       box-shadow:0 10px 28px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05);
       user-select:none; margin-top:6px;
     }
 
     /* ===== Capas a pantalla completa ===== */
-    .layer{
-      position:absolute; inset:0; z-index:1; /* base */
-    }
-    .layer img{
-      position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
-    }
+    .layer{ position:absolute; inset:0; z-index:1; }
+    .layer img{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 
     /* RIGHT = New (fondo completo, sin recorte) */
     #backRight { object-fit:contain; object-position:center; opacity:.5; z-index:1; }
@@ -59,7 +64,6 @@
     /* LEFT = Old (recortado por clip-path según --pos) */
     #layerLeft{
       z-index:3;
-      /* recorta la capa izquierda: se ve de 0 a --pos */
       clip-path: polygon(0 0, var(--pos) 0, var(--pos) 100%, 0 100%);
     }
     #backLeft { object-fit:contain; object-position:center; opacity:.5; z-index:1; }
@@ -84,6 +88,8 @@
     .badge.left{left:10px}
     .badge.right{right:10px}
 
+    .res-badge{ margin-top:6px; font-size:12px; color:#9aa4b2; }
+
     footer{margin-top:10px; font-size:12px; color:#888}
   </style>
 </head>
@@ -93,6 +99,16 @@
     <h1>Render Compare</h1>
   </div>
 
+  <!-- Presets de resolución -->
+  <div class="presets" id="presets">
+    <button data-w="1280" data-h="720"  data-name="HD"      data-mpx="0.92">HD</button>
+    <button data-w="1920" data-h="1080" data-name="Full HD" data-mpx="2.07">Full HD</button>
+    <button data-w="2560" data-h="1440" data-name="QHD"     data-mpx="3.69">QHD</button>
+    <button data-w="3840" data-h="2160" data-name="4K UHDV" data-mpx="8.29">4K UHDV</button>
+    <button data-w="7680" data-h="4800" data-name="WHUXGA"  data-mpx="36.86">WHUXGA</button>
+    <span class="info" id="resInfo">Aspect 16:9 • Max width 1100px</span>
+  </div>
+
   <div class="uploader">
     <label>Old Image: <input type="file" id="fileLeft"  accept="image/*"></label>
     <label>New Image: <input type="file" id="fileRight" accept="image/*"></label>
@@ -100,13 +116,13 @@
 
   <div class="wrap">
     <section class="compare" id="compare" aria-label="Image comparison">
-      <!-- Capa derecha: back + imagen NEW a tamaño fijo -->
+      <!-- Capa derecha: back + imagen NEW -->
       <div class="layer" id="layerRight">
         <img id="backRight" src="./Logo_Alpha_black.png" alt="Default New">
         <img id="imgRight"  alt="New image">
       </div>
 
-      <!-- Capa izquierda: back + imagen OLD a tamaño fijo, recortada por clip-path -->
+      <!-- Capa izquierda: back + imagen OLD (recortada) -->
       <div class="layer" id="layerLeft">
         <img id="backLeft" src="./Logo_Alpha_white.png" alt="Default Old">
         <img id="imgLeft"  alt="Old image">
@@ -119,6 +135,8 @@
       <div class="handle" id="handle" title="Drag">⇔</div>
       <input id="range" class="range" type="range" min="0" max="100" value="50" />
     </section>
+
+    <div class="res-badge" id="resBadge">Viewer: 16:9 • Max width 1100px</div>
   </div>
 
   <footer>Made by Joni Mercado</footer>
@@ -134,15 +152,16 @@
     const range = $('#range');
     const fileLeft = $('#fileLeft');
     const fileRight = $('#fileRight');
+    const resInfo = $('#resInfo');
+    const resBadge = $('#resBadge');
+    const presets = $('#presets');
 
-    /* --- Slider: mueve la variable CSS --pos (porcentaje) --- */
-    function setPosition(pct){
-      root.style.setProperty('--pos', pct + '%');
-    }
+    /* Slider → variable CSS --pos */
+    function setPosition(pct){ root.style.setProperty('--pos', pct + '%'); }
     range.addEventListener('input', e => setPosition(e.target.value));
     setPosition(50);
 
-    /* --- Helpers --- */
+    /* Helpers */
     function fileToDataURL(file, cb){
       const r = new FileReader();
       r.onload = e => cb(e.target.result);
@@ -156,20 +175,35 @@
         compare.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
       }
     }
+    function setPreset(w, h, name, mpx){
+      compare.style.aspectRatio = `${w} / ${h}`;
+      root.style.setProperty('--maxw', w + 'px');
+      const aspect = (w/h).toFixed(2);
+      resInfo.textContent = `${name} — ${w}×${h} • Aspect ${aspect}:1 • ${mpx} Mpx`;
+      resBadge.textContent = `Viewer: ${name} • ${w}×${h}`;
+    }
 
-    /* --- Mostrar imágenes reales y ocultar backs del mismo lado --- */
+    /* Presets click */
+    presets.addEventListener('click', (e)=>{
+      const b = e.target.closest('button[data-w]');
+      if(!b) return;
+      const w = +b.dataset.w, h = +b.dataset.h, name = b.dataset.name, mpx = b.dataset.mpx;
+      setPreset(w, h, name, mpx);
+    });
+
+    /* Mostrar imágenes reales y ocultar backs */
     imgLeft.addEventListener('load', () => {
       imgLeft.style.visibility = 'visible';
-      backLeft.style.display = 'none';     // Old back fuera
+      backLeft.style.display = 'none';
       if (!imgRight.src) updateAspectFrom(imgLeft);
     });
     imgRight.addEventListener('load', () => {
       imgRight.style.visibility = 'visible';
-      backRight.style.display = 'none';    // New back fuera
+      backRight.style.display = 'none';
       updateAspectFrom(imgRight);
     });
 
-    /* --- Inputs de archivos --- */
+    /* Inputs de archivos */
     fileLeft.addEventListener('change', () => {
       const f = fileLeft.files[0]; if(!f) return;
       fileToDataURL(f, url => setImg('left', url));
@@ -179,7 +213,7 @@
       fileToDataURL(f, url => setImg('right', url));
     });
 
-    /* --- Arrastrar el slider con mouse/touch en todo el viewer --- */
+    /* Arrastrar el slider con mouse/touch */
     let dragging = false;
     const setFromX = x => {
       const r = compare.getBoundingClientRect();
@@ -194,7 +228,7 @@
     window.addEventListener('touchmove', e => { if(dragging) setFromX(e.touches[0].clientX); }, {passive:true});
     window.addEventListener('touchend', () => dragging = false);
 
-    /* --- Drag & drop de imágenes al viewer --- */
+    /* Drag & drop de imágenes al viewer */
     compare.addEventListener('dragover', e => { e.preventDefault(); });
     compare.addEventListener('drop', e => {
       e.preventDefault();
@@ -209,6 +243,9 @@
         fileToDataURL(files[1], url => setImg('right', url));
       }
     });
+
+    // Preset inicial opcional (ej: Full HD):
+    // setPreset(1920,1080,'Full HD','2.07');
   </script>
 </body>
 </html>
