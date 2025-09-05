@@ -4,203 +4,82 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Comparador de imágenes | Slider</title>
-  <meta name="description" content="Viewer simple para comparar dos imágenes con un slider. Listo para GitHub Pages." />
   <style>
-    :root{
-      --accent: #0ea5e9; /* azul */
-      --bg: #0f172a; /* gris azulado oscuro */
-      --surface: #111827;
-      --text: #e5e7eb;
-      --muted: #94a3b8;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
     body{
-      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial;
-      background: radial-gradient(70% 60% at 50% 0%, #0b1220 0%, var(--bg) 60%, #0b1220 100%);
-      color:var(--text);
-      display:flex; align-items:center; justify-content:center; padding:24px;
+      margin:0; font-family:sans-serif; background:#0f172a; color:#e5e7eb;
+      display:flex; flex-direction:column; align-items:center; padding:20px; min-height:100vh;
     }
-    .wrap{width:min(1100px, 100%);}
-    header{margin-bottom:16px}
-    h1{font-size:clamp(18px, 2.4vw, 28px); margin:0 0 4px}
-    p{margin:0; color:var(--muted)}
-
+    h1{margin-bottom:10px}
+    .uploader{margin:10px 0; display:flex; gap:15px}
     .compare{
-      position:relative; width:100%; border-radius:16px; overflow:hidden; background:var(--surface);
-      box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.05);
-      /* Si tus imágenes no comparten proporción, puedes fijar una altura: */
-      /* aspect-ratio: 16/9; */
+      position:relative; max-width:900px; width:100%; border-radius:12px; overflow:hidden;
+      background:#111; margin-top:20px;
     }
-    .compare figure{margin:0; position:relative}
-    .compare img{display:block; width:100%; height:100%; object-fit:cover; user-select:none; pointer-events:none}
-
-    /* Capa superior que se recorta con width */
-    .overlay{position:absolute; inset:0 0 0 0; width:50%; overflow:hidden}
-
-    /* División y manija */
-    .divider{position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%);
-      width:2px; background:rgba(255,255,255,.7); box-shadow: 0 0 0 1px rgba(0,0,0,.25)}
-    .handle{position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
-      width:42px; height:42px; border-radius:9999px; background:#fff; color:#000;
-      display:grid; place-items:center; box-shadow:0 6px 18px rgba(0,0,0,.35);
-      border:2px solid rgba(0,0,0,.15);
-    }
-    .handle svg{width:22px; height:22px}
-
-    /* Rango accesible pero visualmente minimalista */
-    .range{position:absolute; inset:0; appearance:none; -webkit-appearance:none; background:transparent; cursor:ew-resize}
-    .range:focus{outline:none}
-    .range::-webkit-slider-thumb{appearance:none; -webkit-appearance:none; width:1px; height:1px}
-    .range::-moz-range-thumb{width:1px; height:1px; border:0}
-    .range::-ms-thumb{width:1px; height:1px}
-
-    /* Etiquetas */
-    .labels{position:absolute; inset:auto 0 0 0; display:flex; justify-content:space-between; padding:10px 12px; pointer-events:none}
-    .label{font-size:13px; line-height:1; padding:.4rem .6rem; border-radius:10px; background:rgba(0,0,0,.45); color:#fff; backdrop-filter: blur(6px); border:1px solid rgba(255,255,255,.08)}
-
-    /* Ayudas y footer */
-    .help{display:flex; gap:8px; align-items:center; font-size:13px; color:var(--muted); margin-top:10px}
-    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      background:#0b1220; color:#cbd5e1; padding:.15rem .35rem; border-radius:6px; border:1px solid rgba(255,255,255,.08)}
-
-    footer{margin-top:10px; font-size:12px; color:var(--muted)}
-    a{color:#93c5fd; text-decoration:none}
-    a:hover{text-decoration:underline}
+    .compare img{width:100%; height:auto; display:block; object-fit:cover; user-select:none; pointer-events:none}
+    .overlay{position:absolute; inset:0; width:50%; overflow:hidden}
+    .divider{position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:2px; background:#fff}
+    .handle{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      width:32px; height:32px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:#000; font-weight:bold; cursor:ew-resize}
+    input[type=range]{position:absolute; inset:0; opacity:0; cursor:ew-resize}
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <header>
-      <h1>Comparador de imágenes con slider</h1>
-      <p>Arrastrá para ver la diferencia. Teclas <span class="kbd">←</span><span class="kbd">→</span> también funcionan. Listo para GitHub Pages.</p>
-    </header>
+  <h1>Comparador de imágenes</h1>
+  <p>Subí dos imágenes y usá el slider para comparar.</p>
 
-    <section class="compare" id="compare" aria-label="Comparador de imágenes">
-      <figure>
-        <!-- Imagen base (derecha) -->
-        <img id="imgRight" alt="Imagen derecha" loading="lazy" />
+  <div class="uploader">
+    <label>
+      Imagen izquierda:
+      <input type="file" id="fileLeft" accept="image/*">
+    </label>
+    <label>
+      Imagen derecha:
+      <input type="file" id="fileRight" accept="image/*">
+    </label>
+  </div>
 
-        <!-- Capa recortada (izquierda) -->
-        <div class="overlay" id="overlay">
-          <img id="imgLeft" alt="Imagen izquierda" loading="lazy" />
-        </div>
-
-        <!-- División visual y manija -->
-        <div class="divider" id="divider" aria-hidden="true"></div>
-        <div class="handle" id="handle" aria-hidden="true" title="Arrastrar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M8 12h8M12 4v16"/>
-          </svg>
-        </div>
-
-        <!-- Control accesible -->
-        <input id="range" class="range" type="range" min="0" max="100" value="50" aria-label="Posición del deslizador" />
-
-        <!-- Etiquetas -->
-        <div class="labels">
-          <span class="label" id="labelLeft">Antes</span>
-          <span class="label" id="labelRight">Después</span>
-        </div>
-      </figure>
-    </section>
-
-    <div class="help">
-      <span>Tips:</span>
-      <span>Arrastrá en cualquier punto de la imagen</span>
-      <span>•</span>
-      <span>Usá <span class="kbd">←</span> y <span class="kbd">→</span> para mover el slider</span>
-      <span>•</span>
-      <span>Podés pasar rutas por query string: <code>?a=left.png&b=right.png&la=Antes&lb=Después</code></span>
+  <div class="compare" id="compare" style="display:none">
+    <img id="imgRight" alt="Imagen derecha" />
+    <div class="overlay" id="overlay">
+      <img id="imgLeft" alt="Imagen izquierda" />
     </div>
-
-    <footer>
-      <span>Hecho con HTML, CSS y JS puro. Sin dependencias.</span>
-    </footer>
-  </main>
+    <div class="divider" id="divider"></div>
+    <div class="handle" id="handle">⇔</div>
+    <input id="range" type="range" min="0" max="100" value="50">
+  </div>
 
   <script>
-    // Utilidades
-    const qs = (s, el = document) => el.querySelector(s);
-    const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+    const fileLeft = document.getElementById("fileLeft");
+    const fileRight = document.getElementById("fileRight");
+    const imgLeft = document.getElementById("imgLeft");
+    const imgRight = document.getElementById("imgRight");
+    const overlay = document.getElementById("overlay");
+    const divider = document.getElementById("divider");
+    const handle = document.getElementById("handle");
+    const range = document.getElementById("range");
+    const compare = document.getElementById("compare");
 
-    // Elementos
-    const compare = qs('#compare');
-    const overlay = qs('#overlay');
-    const divider = qs('#divider');
-    const handle = qs('#handle');
-    const range = qs('#range');
-    const imgLeft = qs('#imgLeft');
-    const imgRight = qs('#imgRight');
-    const labelLeft = qs('#labelLeft');
-    const labelRight = qs('#labelRight');
-
-    // Carga de parámetros por URL
-    const params = new URLSearchParams(location.search);
-    const srcLeft = params.get('a') || params.get('left') || 'images/left.jpg';
-    const srcRight = params.get('b') || params.get('right') || 'images/right.jpg';
-    const labLeft = params.get('la') || 'Antes';
-    const labRight = params.get('lb') || 'Después';
-
-    imgLeft.src = srcLeft;
-    imgRight.src = srcRight;
-    labelLeft.textContent = labLeft;
-    labelRight.textContent = labRight;
-
-    // Estado y actualización
-    let pos = 0.5; // 0 a 1
-
-    function applyPosition(p){
-      pos = clamp(p, 0, 1);
-      const pct = pos * 100;
-      overlay.style.width = pct + '%';
-      divider.style.left = pct + '%';
-      handle.style.left = pct + '%';
-      range.value = Math.round(pct);
+    function loadFile(input, targetImg){
+      const file = input.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        targetImg.src = e.target.result;
+        if(imgLeft.src && imgRight.src){ compare.style.display="block"; }
+      };
+      reader.readAsDataURL(file);
     }
 
-    applyPosition(0.5);
+    fileLeft.addEventListener("change", ()=> loadFile(fileLeft, imgLeft));
+    fileRight.addEventListener("change", ()=> loadFile(fileRight, imgRight));
 
-    function setFromClientX(clientX){
-      const rect = compare.getBoundingClientRect();
-      const p = (clientX - rect.left) / rect.width;
-      applyPosition(p);
+    function applyPosition(pct){
+      overlay.style.width = pct+"%";
+      divider.style.left = pct+"%";
+      handle.style.left = pct+"%";
     }
-
-    // Interacción con teclado (flechas)
-    compare.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft'){ applyPosition(pos - 0.02); }
-      if (e.key === 'ArrowRight'){ applyPosition(pos + 0.02); }
-    });
-
-    // Rango accesible
-    range.addEventListener('input', (e) => {
-      applyPosition(e.target.value / 100);
-    });
-
-    // Arrastrar con puntero en cualquier zona del comparador
-    let dragging = false;
-
-    function onPointerDown(e){
-      dragging = true;
-      setFromClientX(e.clientX || (e.touches && e.touches[0].clientX));
-    }
-    function onPointerMove(e){
-      if(!dragging) return;
-      setFromClientX(e.clientX || (e.touches && e.touches[0].clientX));
-    }
-    function onPointerUp(){ dragging = false; }
-
-    compare.addEventListener('mousedown', onPointerDown);
-    window.addEventListener('mousemove', onPointerMove);
-    window.addEventListener('mouseup', onPointerUp);
-
-    compare.addEventListener('touchstart', onPointerDown, {passive:true});
-    window.addEventListener('touchmove', onPointerMove, {passive:true});
-    window.addEventListener('touchend', onPointerUp);
-
-    // Accesibilidad: focus visible
-    compare.tabIndex = 0;
+    range.addEventListener("input", e => applyPosition(e.target.value));
+    applyPosition(50);
   </script>
 </body>
 </html>
