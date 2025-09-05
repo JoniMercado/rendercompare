@@ -97,18 +97,7 @@
 
     .res-badge{ margin-top:6px; font-size:12px; color:#9aa4b2; }
 
-    footer{margin-top:10px; font-size:12px; color:#888}
-    footer a{ color:#fff; text-decoration:none; }
-    footer a:hover{ text-decoration:underline; }
-  </style>
-</head>
-<body>
-  <div class="brand" aria-label="Render Compare">
-    <img class="logo" src="./Logo_Rehecho_v7_avatar.png" alt="Logo" width="32" height="32">
-    <h1>Render Compare</h1>
-  </div>
-
- /* Botón copiar embed (sin mostrar código) */
+    /* Botón copiar embed (sin mostrar código) */
     .actions{ margin-top:8px; display:flex; justify-content:flex-end; }
     .copy-embed{
       background:#111; color:#eee; border:1px solid #2a2a2a; border-radius:10px;
@@ -165,6 +154,11 @@
     </section>
 
     <div class="res-badge" id="resBadge">Viewer: 16:9 • Max width 1100px</div>
+
+    <!-- Botón para copiar embed (no muestra el código) -->
+    <div class="actions">
+      <button id="copyEmbed" class="copy-embed" type="button" title="Copy embed code">Copy embed code</button>
+    </div>
   </div>
 
   <footer>Made by <a href="https://www.jonatanmercado.com" target="_blank" rel="noopener noreferrer">Joni Mercado</a></footer>
@@ -183,6 +177,7 @@
     const resInfo = $('#resInfo');
     const resBadge = $('#resBadge');
     const presets = $('#presets');
+    const copyBtn = $('#copyEmbed');
 
     /* Slider → variable CSS --pos */
     function setPosition(pct){ root.style.setProperty('--pos', pct + '%'); }
@@ -269,6 +264,41 @@
       } else {
         fileToDataURL(files[0], url => setImg('left', url));
         fileToDataURL(files[1], url => setImg('right', url));
+      }
+    });
+
+    /* Copiar embed (sin mostrar el código) */
+    function canonicalUrl(){
+      try{
+        const u = new URL(window.location.href);
+        u.search = ''; u.hash = '';
+        return u.toString();
+      }catch{
+        return window.location.href;
+      }
+    }
+    function embedSnippet(src){
+      return `<iframe src="${src}" title="Render Compare by Joni Mercado" width="100%" height="600" style="border:0; background:#000;" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+    }
+    async function copyText(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        return true;
+      }catch{
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        return true;
+      }
+    }
+    copyBtn.addEventListener('click', async () => {
+      const ok = await copyText(embedSnippet(canonicalUrl()));
+      if (ok){
+        const old = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => copyBtn.textContent = old, 1200);
       }
     });
 
