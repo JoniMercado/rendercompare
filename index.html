@@ -27,15 +27,10 @@
 
     /* Título con icono */
     .brand{
-      display:flex; align-items:center; gap:10px;
-      margin:0 0 6px;
+      display:flex; align-items:center; gap:10px; margin:0 0 6px;
     }
-    .brand h1{
-      margin:0; font-size:clamp(18px, 3vw, 28px); font-weight:700;
-    }
-    .brand .logo{
-      width:32px; height:32px; border-radius:6px; display:block;
-    }
+    .brand h1{ margin:0; font-size:clamp(18px,3vw,28px); font-weight:700; }
+    .brand .logo{ width:32px; height:32px; border-radius:6px; display:block; }
 
     .uploader{display:flex; gap:18px; flex-wrap:wrap; width:100%; max-width:1100px}
     .uploader label{display:flex; align-items:center; gap:8px}
@@ -50,24 +45,35 @@
     .compare.dragging{ outline:2px dashed var(--hint-strong); outline-offset:-6px }
     .compare.dragging .drop-overlay{ opacity:1 }
 
+    /* BACKS por defecto (mitades izquierda/derecha) */
+    .back{
+      position:absolute; top:0; bottom:0; width:50%;
+      display:flex; align-items:center; justify-content:center;
+      background-repeat:no-repeat; background-position:center center;
+      background-size:40% auto; opacity:.5; z-index:1;
+      pointer-events:none;
+    }
+    .back.left  { left:0; }
+    .back.right { left:50%; }
+
     /* imágenes fijas en toda la caja */
     .compare img{
       position:absolute; inset:0; width:100%; height:100%;
-      object-fit:cover; pointer-events:none; visibility:hidden;
+      object-fit:cover; pointer-events:none; visibility:hidden; z-index:2;
     }
     #imgLeft  { object-position:left  center; }
     #imgRight { object-position:right center; }
 
     /* capa izquierda recortada por el slider */
-    .overlay{position:absolute; inset:0; width:50%; overflow:hidden}
+    .overlay{position:absolute; inset:0; width:50%; overflow:hidden; z-index:3}
 
     /* slider */
     .divider{position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%);
-      width:2px; background:rgba(255,255,255,.9)}
+      width:2px; background:rgba(255,255,255,.9); z-index:4}
     .handle{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
       width:38px; height:38px; border-radius:9999px; background:#fff; color:#000;
-      display:grid; place-items:center; font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,.35)}
-    .range{position:absolute; inset:0; appearance:none; background:transparent; opacity:0; cursor:ew-resize}
+      display:grid; place-items:center; font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,.35); z-index:4}
+    .range{position:absolute; inset:0; appearance:none; background:transparent; opacity:0; cursor:ew-resize; z-index:5}
     .range::-webkit-slider-thumb{appearance:none; width:1px; height:1px}
     .range::-moz-range-thumb{width:1px; height:1px; border:0}
 
@@ -75,7 +81,7 @@
     .badge{
       position:absolute; top:10px; padding:.38rem .6rem; font-size:13px; line-height:1;
       color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.08);
-      border-radius:10px; backdrop-filter:blur(6px); pointer-events:none; z-index:5;
+      border-radius:10px; backdrop-filter:blur(6px); pointer-events:none; z-index:6;
     }
     .badge.left{left:10px}
     .badge.right{right:10px}
@@ -97,10 +103,26 @@
     .drop-right{ border-left:1px dashed var(--hint) }
 
     footer{margin-top:10px; font-size:12px; color:#888}
+
+    /* Embed section */
+    .embed{
+      margin-top:6px; width:100%; max-width:1100px;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .embed label{font-size:13px; color:#b4b4b4}
+    .embed .row{display:flex; gap:8px; align-items:center}
+    .embed textarea{
+      width:100%; min-height:90px; resize:vertical; color:#ddd; background:#0a0a0a;
+      border:1px solid #222; border-radius:8px; padding:10px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px;
+    }
+    .embed button{
+      padding:.5rem .75rem; border-radius:8px; border:1px solid #2a2a2a; background:#161616; color:#eaeaea; cursor:pointer;
+    }
+    .embed button:hover{ background:#1d1d1d }
   </style>
 </head>
 <body>
-  <!-- Título con icono a la izquierda -->
+  <!-- Título con icono -->
   <div class="brand" aria-label="Render Compare">
     <img class="logo" src="./Logo_Rehecho_v7_avatar.png" alt="Logo" width="32" height="32">
     <h1>Render Compare</h1>
@@ -112,7 +134,13 @@
   </div>
 
   <section class="compare" id="compare" aria-label="Image comparison">
+    <!-- BACKS por defecto -->
+    <div class="back left"  id="backLeft"></div>
+    <div class="back right" id="backRight"></div>
+
+    <!-- imagen derecha de fondo -->
     <img id="imgRight" alt="New image" />
+    <!-- capa izquierda recortada -->
     <div class="overlay" id="overlay">
       <img id="imgLeft" alt="Old image" />
     </div>
@@ -133,6 +161,15 @@
 
   <footer>Made by Joni Mercado</footer>
 
+  <!-- Embed code block -->
+  <section class="embed" aria-label="Embed">
+    <label for="embedCode">Embed this viewer in your site (keeps all settings):</label>
+    <div class="row">
+      <textarea id="embedCode" readonly></textarea>
+      <button id="copyEmbed" type="button" title="Copy">Copy</button>
+    </div>
+  </section>
+
   <script>
     const $ = s => document.querySelector(s);
     const compare = $('#compare');
@@ -144,7 +181,13 @@
     const range = $('#range');
     const fileLeft = $('#fileLeft');
     const fileRight = $('#fileRight');
-    const dropOverlay = $('#dropOverlay');
+
+    const backLeft  = $('#backLeft');
+    const backRight = $('#backRight');
+
+    // Set default backs (paths relative a index.html)
+    backLeft.style.backgroundImage  = "url('./Backs/Logo_Alpha_white.png')";
+    backRight.style.backgroundImage = "url('./Backs/Logo_Alpha_black.png')";
 
     function applyPosition(pct){
       overlay.style.width = pct + '%';
@@ -166,14 +209,18 @@
         compare.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
       }
     }
-    function revealOnLoad(img, preferRight=false){
+    function revealOnLoad(img, side){
       img.addEventListener('load', () => {
         img.style.visibility = 'visible';
-        if (preferRight) updateAspectFrom(imgRight); else if (!imgRight.src) updateAspectFrom(imgLeft);
+        // Como las backs están por debajo (z-index:1), no tapan nada; no hace falta ocultarlas.
+        // Si quisieras ocultarlas al cargar, descomentá:
+        // if (side === 'left') backLeft.style.display = 'none';
+        // if (side === 'right') backRight.style.display = 'none';
+        if (side === 'right') updateAspectFrom(imgRight); else if (!imgRight.src) updateAspectFrom(imgLeft);
       }, { once:true });
     }
-    revealOnLoad(imgLeft);
-    revealOnLoad(imgRight, true);
+    revealOnLoad(imgLeft, 'left');
+    revealOnLoad(imgRight, 'right');
 
     // Inputs
     fileLeft.addEventListener('change', () => {
@@ -240,6 +287,32 @@
       const file = imgItem.getAsFile(); if (!file) return;
       const target = imgLeft.src ? 'right' : 'left';
       fileToDataURL(file, url => setImg(target, url));
+    });
+
+    // EMBED: genera un iframe con la URL publicada (sin query/hash)
+    function getCanonicalUrl(){
+      try{
+        const url = new URL(window.location.href);
+        url.search = ''; url.hash = '';
+        return url.toString();
+      }catch{ return window.location.href; }
+    }
+    const embedCode = $('#embedCode');
+    const copyBtn   = $('#copyEmbed');
+    const iframeSnippet =
+`<iframe src="${getCanonicalUrl()}"
+  title="Render Compare by Joni Mercado"
+  width="100%" height="600"
+  style="border:0; background:#000;"
+  loading="lazy" referrerpolicy="no-referrer">
+</iframe>`;
+    embedCode.value = iframeSnippet;
+
+    copyBtn.addEventListener('click', () => {
+      embedCode.select();
+      document.execCommand('copy');
+      copyBtn.textContent = 'Copied';
+      setTimeout(()=> copyBtn.textContent = 'Copy', 1200);
     });
   </script>
 </body>
