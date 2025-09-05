@@ -12,9 +12,7 @@
   <style>
     :root{
       --bg:#000; --panel:#1a1a1a; --text:#e5e7eb;
-      --hint:rgba(255,255,255,.25);
-      --maxw:1100px;
-      --pos:50%;
+      --maxw:1100px; --pos:50%;
     }
     *{box-sizing:border-box}
     body{
@@ -26,106 +24,89 @@
     .brand h1{ margin:0; font-size:clamp(18px,3vw,28px); font-weight:700; }
     .brand .logo{ width:32px; height:32px; border-radius:6px; display:block; }
 
-    .presets{ display:flex; gap:8px; flex-wrap:wrap; width:100%; max-width:var(--maxw); align-items:center }
-    .presets button{
-      background:#111; color:#eee; border:1px solid #2a2a2a; border-radius:10px;
-      padding:.45rem .6rem; font-size:13px; cursor:pointer;
-    }
-    .presets button:hover{ background:#171717 }
-    .presets button[disabled]{ opacity:.5; cursor:not-allowed }
-    .presets .info{ margin-left:auto; font-size:12px; color:#9aa4b2; }
+    .row{ width:100%; max-width:var(--maxw); display:flex; gap:12px; flex-wrap:wrap; align-items:center }
+    .row label.chk{ display:flex; gap:8px; align-items:center; background:#0f0f0f; border:1px solid #2a2a2a; padding:8px 10px; border-radius:10px; }
+    .row small{ color:#9aa4b2 }
 
-    .uploader{display:flex; gap:18px; flex-wrap:wrap; width:100%; max-width:var(--maxw)}
-    .uploader label{display:flex; align-items:center; gap:8px}
-
-    .actions-line{ width:100%; max-width:var(--maxw); display:flex; gap:8px; justify-content:flex-end; }
+    .presets button,
     .actions-line button{
       background:#111; color:#eee; border:1px solid #2a2a2a; border-radius:10px;
       padding:.45rem .6rem; font-size:13px; cursor:pointer;
     }
-    .actions-line button:hover{ background:#171717 }
+    .presets button:hover,.actions-line button:hover{ background:#171717 }
+    .presets button[disabled]{ opacity:.5; cursor:not-allowed }
+    .actions-line button[disabled]{ opacity:.5; cursor:not-allowed }
+
+    .uploader label{display:flex; align-items:center; gap:8px}
 
     .wrap{ width:100%; max-width:var(--maxw); }
-
     .compare{
-      position:relative; width:100%;
-      aspect-ratio:16/9;
-      background:var(--panel); border-radius:14px; overflow:hidden;
+      position:relative; width:100%; aspect-ratio:16/9; background:var(--panel);
+      border-radius:14px; overflow:hidden;
       box-shadow:0 10px 28px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05);
       user-select:none; margin-top:6px;
     }
-
     .layer{ position:absolute; inset:0; z-index:1; }
     .layer img{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+    #backRight{ object-fit:contain; object-position:center; opacity:.5; z-index:1 }
+    #imgRight { object-fit:cover;   object-position:right center; visibility:hidden; z-index:2 }
+    #layerLeft{ z-index:3; clip-path: polygon(0 0, var(--pos) 0, var(--pos) 100%, 0 100%) }
+    .solid-bg-left{ position:absolute; inset:0; background:var(--panel); z-index:0 }
+    #backLeft{ object-fit:contain; object-position:center; opacity:.5; z-index:1 }
+    #imgLeft { object-fit:cover;   object-position:left center;  visibility:hidden; z-index:2 }
 
-    #backRight { object-fit:contain; object-position:center; opacity:.5; z-index:1; }
-    #imgRight  { object-fit:cover;   object-position:right center; visibility:hidden; z-index:2; }
-
-    #layerLeft{
-      z-index:3;
-      clip-path: polygon(0 0, var(--pos) 0, var(--pos) 100%, 0 100%);
-    }
-    .solid-bg-left{ position:absolute; inset:0; background:var(--panel); z-index:0; }
-    #backLeft { object-fit:contain; object-position:center; opacity:.5; z-index:1; }
-    #imgLeft  { object-fit:cover;   object-position:left center; visibility:hidden; z-index:2; }
-
-    .divider{
-      position:absolute; top:0; bottom:0; left:var(--pos); transform:translateX(-50%);
-      width:2px; background:rgba(255,255,255,.9); z-index:4; transition:opacity .15s;
-    }
-    .handle{
-      position:absolute; top:50%; left:var(--pos); transform:translate(-50%,-50%);
-      width:38px; height:38px; border-radius:9999px; background:#fff; color:#000;
-      display:grid; place-items:center; font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,.35); z-index:4;
-      transition:opacity .15s;
-    }
-    .range{position:absolute; inset:0; appearance:none; background:transparent; opacity:0; cursor:ew-resize; z-index:5}
+    .divider{ position:absolute; top:0; bottom:0; left:var(--pos); transform:translateX(-50%);
+      width:2px; background:rgba(255,255,255,.9); z-index:4; transition:opacity .15s }
+    .handle{ position:absolute; top:50%; left:var(--pos); transform:translate(-50%,-50%);
+      width:38px; height:38px; border-radius:9999px; background:#fff; color:#000; display:grid; place-items:center;
+      font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,.35); z-index:4; transition:opacity .15s }
+    .range{ position:absolute; inset:0; appearance:none; background:transparent; opacity:0; cursor:ew-resize; z-index:5 }
     .range::-webkit-slider-thumb{appearance:none; width:1px; height:1px}
     .range::-moz-range-thumb{width:1px; height:1px; border:0}
-    .compare.dragging .divider,
-    .compare.dragging .handle { opacity:0; }
+    .compare.dragging .divider, .compare.dragging .handle{ opacity:0 }
 
-    .badge{
-      position:absolute; top:10px; padding:.38rem .6rem; font-size:13px; line-height:1;
-      color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.08);
-      border-radius:10px; backdrop-filter:blur(6px); pointer-events:none; z-index:6;
-    }
-    .badge.left{left:10px}
-    .badge.right{right:10px}
-
-    .res-badge{ margin-top:6px; font-size:12px; color:#9aa4b2; }
-
+    .badge{ position:absolute; top:10px; padding:.38rem .6rem; font-size:13px; color:#fff;
+      background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.08); border-radius:10px; backdrop-filter:blur(6px); z-index:6 }
+    .badge.left{left:10px} .badge.right{right:10px}
+    .hint{ font-size:12px; color:#9aa4b2 }
     footer{margin-top:10px; font-size:12px; color:#888}
-    footer a{ color:#fff; text-decoration:none; }
-    footer a:hover{ text-decoration:underline; }
+    footer a{ color:#fff; text-decoration:none } footer a:hover{ text-decoration:underline }
   </style>
 </head>
 <body>
-  <div class="brand" aria-label="Render Compare">
-    <img class="logo" src="./Logo_Rehecho_v7_avatar.png" alt="Logo" width="32" height="32">
-    <h1>Render Compare</h1>
+  <div class="brand"><img class="logo" src="./Logo_Rehecho_v7_avatar.png" alt="Logo" width="32" height="32"><h1>Render Compare</h1></div>
+
+  <!-- Shareable toggle -->
+  <div class="row">
+    <label class="chk"><input type="checkbox" id="shareable"> Shareable (public upload)</label>
+    <small>Enable to upload images to a public host for short links.</small>
   </div>
 
-  <div class="presets" id="presets">
+  <!-- Presets -->
+  <div class="row presets" id="presets">
     <button data-w="1280" data-h="720"  data-name="HD"      data-mpx="0.92">HD</button>
     <button data-w="1920" data-h="1080" data-name="Full HD" data-mpx="2.07">Full HD</button>
     <button data-w="2560" data-h="1440" data-name="QHD"     data-mpx="3.69">QHD</button>
     <button data-w="3840" data-h="2160" data-name="4K UHDV" data-mpx="8.29">4K UHDV</button>
     <button data-w="7680" data-h="4800" data-name="WHUXGA"  data-mpx="36.86">WHUXGA</button>
     <button id="customBtn" data-w="" data-h="" data-name="Custom" data-mpx="" disabled>Custom</button>
-    <span class="info" id="resInfo">Aspect 16:9 • Max width 1100px</span>
+    <span class="hint" id="resInfo">Aspect 16:9 • Max width 1100px</span>
   </div>
 
-  <div class="uploader">
+  <!-- Upload -->
+  <div class="row uploader">
     <label>Old Image: <input type="file" id="fileLeft"  accept="image/*"></label>
     <label>New Image: <input type="file" id="fileRight" accept="image/*"></label>
+    <span class="hint" id="shareHint"></span>
   </div>
 
-  <div class="actions-line">
-    <button id="genLinkEmbed" type="button" title="Generate share link with hosted images">Generate share link</button>
-    <button id="copyEmbed"    type="button" title="Copy iframe for this page">Copy embed code</button>
+  <!-- Actions -->
+  <div class="row actions-line">
+    <button id="genLinkShort" type="button" title="Generate short link (uses public ids)" disabled>Generate share link</button>
+    <button id="copyEmbed" type="button"  title="Copy iframe for this page">Copy embed code</button>
   </div>
 
+  <!-- Viewer -->
   <div class="wrap">
     <section class="compare" id="compare" aria-label="Image comparison">
       <div class="layer" id="layerRight">
@@ -137,236 +118,170 @@
         <img id="backLeft" src="./Logo_Alpha_white.png" alt="Default Old">
         <img id="imgLeft"  alt="Old image">
       </div>
-
-      <span class="badge left">Old</span>
-      <span class="badge right">New</span>
-
-      <div class="divider" id="divider"></div>
-      <div class="handle" id="handle" title="Drag">⇔</div>
+      <span class="badge left">Old</span><span class="badge right">New</span>
+      <div class="divider"></div><div class="handle">⇔</div>
       <input id="range" class="range" type="range" min="0" max="100" value="50" />
     </section>
-
-    <div class="res-badge" id="resBadge">Viewer: 16:9 • Max width 1100px</div>
+    <div class="hint" id="resBadge">Viewer: 16:9 • Max width 1100px</div>
   </div>
 
   <footer>Made by <a href="https://www.jonatanmercado.com" target="_blank" rel="noopener noreferrer">Joni Mercado</a></footer>
 
   <script>
-    /*************** CLOUDINARY CONFIG (completar) ***************/
-    const CLOUDINARY = {
-      cloudName: 'dftensenq',          // <-- ej: 'demo'
-      uploadPreset: 'jonatan'        // <-- ej: 'unsigned_preset'
-    };
-    const CLOUD_ENABLED = !!(CLOUDINARY.cloudName && CLOUDINARY.uploadPreset);
-    /*************************************************************/
+    const CLOUDINARY = { cloudName: 'jonimercado', uploadPreset: 'jonatan' };
+    const CLOUD_BASE = `https://res.cloudinary.com/${CLOUDINARY.cloudName}/image/upload/f_auto,q_auto/`;
 
-    const $ = s => document.querySelector(s);
-    const root = document.documentElement;
-    const compare = $('#compare');
-    const imgLeft = $('#imgLeft'), imgRight = $('#imgRight');
-    const backLeft = $('#backLeft'), backRight = $('#backRight');
-    const range = $('#range');
-    const fileLeft = $('#fileLeft'), fileRight = $('#fileRight');
-    const resInfo = $('#resInfo'), resBadge = $('#resBadge');
-    const presets = $('#presets'), customBtn = $('#customBtn');
-    const genLinkEmbedBtn = $('#genLinkEmbed'), copyBtn = $('#copyEmbed');
+    const $=s=>document.querySelector(s);
+    const root=document.documentElement;
+    const compare=$('#compare'),imgLeft=$('#imgLeft'),imgRight=$('#imgRight');
+    const backLeft=$('#backLeft'),backRight=$('#backRight');
+    const range=$('#range'),fileLeft=$('#fileLeft'),fileRight=$('#fileRight');
+    const resInfo=$('#resInfo'),resBadge=$('#resBadge'),presets=$('#presets'),customBtn=$('#customBtn');
+    const shareableChk=$('#shareable'),shareHint=$('#shareHint');
+    const genLinkShortBtn=$('#genLinkShort'),copyBtn=$('#copyEmbed');
 
-    /* ===== Slider ===== */
-    function setPosition(pct){ root.style.setProperty('--pos', pct + '%'); saveState(); }
-    range.addEventListener('input', e => setPosition(e.target.value));
-    function setFromX(x){
-      const r = compare.getBoundingClientRect();
-      const p = Math.min(1, Math.max(0, (x - r.left) / r.width));
-      const pct = Math.round(p * 100);
-      setPosition(pct); range.value = pct;
+    const SHARE_KEY='viewer:shareable';
+    const ids={left:'',right:''};
+
+    function updateShareHint(){
+      shareHint.textContent = shareableChk.checked
+        ? 'Shareable ON — new images will upload publicly for short links.'
+        : 'Shareable OFF — images stay local; sharing disabled.';
     }
+    function canShare(){ return shareableChk.checked && ids.left && ids.right; }
+    function refreshShareButton(){
+      genLinkShortBtn.disabled=!canShare();
+      genLinkShortBtn.title=canShare()
+        ? 'Generate short link (uses public ids)'
+        : (shareableChk.checked?'Upload both images to enable sharing':'Enable "Shareable" to share');
+    }
+
+    shareableChk.checked=localStorage.getItem(SHARE_KEY)==='1';
+    updateShareHint(); refreshShareButton();
+    shareableChk.addEventListener('change',()=>{
+      if(shareableChk.checked){
+        const ok=confirm('If you enable "Shareable", images you upload will be sent to a public host so the comparison can be shared with a short link.');
+        if(!ok){shareableChk.checked=false;}
+      }
+      localStorage.setItem(SHARE_KEY,shareableChk.checked?'1':'0');
+      if(!shareableChk.checked){ids.left='';ids.right='';}
+      updateShareHint(); refreshShareButton();
+    });
+
+    function setPosition(pct){ root.style.setProperty('--pos',pct+'%'); savePos(); }
+    range.addEventListener('input',e=>setPosition(e.target.value));
+
     let dragging=false;
-    compare.addEventListener('mousedown', e => { dragging=true; compare.classList.add('dragging'); setFromX(e.clientX); });
-    window.addEventListener('mousemove', e => { if(dragging) setFromX(e.clientX); });
-    window.addEventListener('mouseup', () => { dragging=false; compare.classList.remove('dragging'); });
-    compare.addEventListener('touchstart', e => { dragging=true; compare.classList.add('dragging'); setFromX(e.touches[0].clientX); }, {passive:true});
-    window.addEventListener('touchmove', e => { if(dragging) setFromX(e.touches[0].clientX); }, {passive:true});
-    window.addEventListener('touchend', () => { dragging=false; compare.classList.remove('dragging'); });
+    const setFromX=x=>{
+      const r=compare.getBoundingClientRect();
+      const p=Math.min(1,Math.max(0,(x-r.left)/r.width));
+      const pct=Math.round(p*100); setPosition(pct); range.value=pct;
+    };
+    compare.addEventListener('mousedown',e=>{dragging=true;compare.classList.add('dragging');setFromX(e.clientX);});
+    window.addEventListener('mousemove',e=>{if(dragging)setFromX(e.clientX);});
+    window.addEventListener('mouseup',()=>{dragging=false;compare.classList.remove('dragging');});
+    compare.addEventListener('touchstart',e=>{dragging=true;compare.classList.add('dragging');setFromX(e.touches[0].clientX);},{passive:true});
+    window.addEventListener('touchmove',e=>{if(dragging)setFromX(e.touches[0].clientX);},{passive:true});
+    window.addEventListener('touchend',()=>{dragging=false;compare.classList.remove('dragging');});
 
-    /* ===== Drag & Drop ===== */
-    compare.addEventListener('dragover', e => { e.preventDefault(); });
-    compare.addEventListener('drop', e => {
+    compare.addEventListener('dragover',e=>{e.preventDefault();});
+    compare.addEventListener('drop',async e=>{
       e.preventDefault();
-      const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/'));
-      if (!files.length) return;
-      const rect = compare.getBoundingClientRect();
-      const leftHalf = (e.clientX - rect.left) / rect.width <= 0.5;
-      if (files.length === 1){
-        handleLocalFile(files[0], leftHalf ? 'left' : 'right');
-      } else {
-        handleLocalFile(files[0], 'left');
-        handleLocalFile(files[1], 'right');
-      }
+      const files=[...(e.dataTransfer?.files||[])].filter(f=>f.type.startsWith('image/'));
+      if(!files.length)return;
+      const rect=compare.getBoundingClientRect();
+      const leftHalf=(e.clientX-rect.left)/rect.width<=0.5;
+      if(files.length===1) await handleFile(files[0],leftHalf?'left':'right');
+      else{ await handleFile(files[0],'left'); await handleFile(files[1],'right'); }
     });
 
-    /* ===== Helpers ===== */
-    function fileToDataURL(file){ return new Promise(res=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.readAsDataURL(file); }); }
-    async function handleLocalFile(file, side){
-      // preview inmediato
-      const dataUrl = await fileToDataURL(file);
-      setImg(side, dataUrl);
-      // subimos si hay Cloudinary
-      if (CLOUD_ENABLED){
+    function fileToDataURL(file){return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}
+    async function uploadToCloudinary(file){
+      const url=`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`;
+      const fd=new FormData(); fd.append('file',file); fd.append('upload_preset',CLOUDINARY.uploadPreset);
+      const resp=await fetch(url,{method:'POST',body:fd});
+      if(!resp.ok) throw new Error('Upload failed');
+      return resp.json(); // { public_id, secure_url, ... }
+    }
+    async function handleFile(file,side){
+      const dataUrl=await fileToDataURL(file); setImg(side,dataUrl);
+      if(shareableChk.checked){
         try{
-          const hosted = await uploadToCloudinary(file);
-          setImg(side, hosted);
-          setHosted(side, hosted);
-        }catch(e){ console.warn('Upload failed', e); }
-      }else{
-        // sin hosting, mantenemos dataURL (link será más largo)
-        setHosted(side, dataUrl);
-      }
+          const res=await uploadToCloudinary(file);
+          const id=res.public_id; ids[side]=id; setImg(side,CLOUD_BASE+id);
+        }catch(e){alert('Upload failed'); ids[side]='';}
+      } else { ids[side]=''; }
+      refreshShareButton();
     }
-    function setImg(side, url){ (side==='left'? imgLeft: imgRight).src = url; }
-    function updateAspectFrom(img){
-      if (img.naturalWidth && img.naturalHeight) setCustom(img.naturalWidth, img.naturalHeight);
-    }
+    function setImg(side,url){ (side==='left'?imgLeft:imgRight).src=url; }
 
-    // Recalcular Custom SIEMPRE que entra una imagen nueva
-    function setCustom(w, h){
-      compare.style.aspectRatio = `${w} / ${h}`;
-      root.style.setProperty('--maxw', w + 'px');
-      const aspect = (w/h).toFixed(2);
-      const mpx = (w*h/1e6).toFixed(2);
-      resInfo.textContent = `Custom — ${w}×${h} • Aspect ${aspect}:1 • ${mpx} Mpx`;
-      resBadge.textContent = `Viewer: Custom • ${w}×${h}`;
-      enableCustom(w, h);
-      localStorage.setItem('viewer:preset', JSON.stringify({ w, h, name:'Custom', mpx, custom:true }));
+    function setCustom(w,h){
+      compare.style.aspectRatio=`${w}/${h}`; root.style.setProperty('--maxw',w+'px');
+      const aspect=(w/h).toFixed(2), mpx=(w*h/1e6).toFixed(2);
+      resInfo.textContent=`Custom — ${w}×${h} • Aspect ${aspect}:1 • ${mpx} Mpx`;
+      resBadge.textContent=`Viewer: Custom • ${w}×${h}`; enableCustom(w,h);
+      localStorage.setItem('viewer:preset',JSON.stringify({w,h,name:'Custom',mpx,custom:true}));
     }
-
-    function setPreset(w, h, name, mpx){
-      compare.style.aspectRatio = `${w} / ${h}`;
-      root.style.setProperty('--maxw', w + 'px');
-      const aspect = (w/h).toFixed(2);
-      resInfo.textContent = `${name} — ${w}×${h} • Aspect ${aspect}:1 • ${mpx||''} ${mpx?'Mpx':''}`;
-      resBadge.textContent = `Viewer: ${name} • ${w}×${h}`;
-      localStorage.setItem('viewer:preset', JSON.stringify({w,h,name,mpx,custom:false}));
+    function updateAspectFrom(img){ if(img.naturalWidth&&img.naturalHeight) setCustom(img.naturalWidth,img.naturalHeight); }
+    function enableCustom(w,h){ customBtn.disabled=false; customBtn.dataset.w=w; customBtn.dataset.h=h; customBtn.textContent=`Custom (${w}×${h})`; localStorage.setItem('viewer:custom',JSON.stringify({w,h})); }
+    function setPreset(w,h,name,mpx){
+      compare.style.aspectRatio=`${w}/${h}`; root.style.setProperty('--maxw',w+'px');
+      const aspect=(w/h).toFixed(2);
+      resInfo.textContent=`${name} — ${w}×${h} • Aspect ${aspect}:1 • ${mpx||''}${mpx?' Mpx':''}`;
+      resBadge.textContent=`Viewer: ${name} • ${w}×${h}`;
+      localStorage.setItem('viewer:preset',JSON.stringify({w,h,name,mpx,custom:false}));
     }
-    function enableCustom(w,h){
-      customBtn.disabled = false;
-      customBtn.dataset.w = w; customBtn.dataset.h = h;
-      customBtn.dataset.name = 'Custom'; customBtn.dataset.mpx = (w*h/1e6).toFixed(2);
-      customBtn.textContent = `Custom (${w}×${h})`;
-      localStorage.setItem('viewer:custom', JSON.stringify({w,h}));
-    }
-
-    presets.addEventListener('click', (e)=>{
-      const b = e.target.closest('button[data-w]'); if(!b) return;
-      const w = +b.dataset.w, h = +b.dataset.h, name = b.dataset.name, mpx = b.dataset.mpx;
-      setPreset(w, h, name, mpx);
-      localStorage.setItem('viewer:preset', JSON.stringify({w,h,name,mpx,custom:(b.id==='customBtn')}));
+    presets.addEventListener('click',e=>{
+      const b=e.target.closest('button[data-w]'); if(!b)return;
+      const w=+b.dataset.w,h=+b.dataset.h,name=b.dataset.name,mpx=b.dataset.mpx;
+      setPreset(w,h,name,mpx);
+      localStorage.setItem('viewer:preset',JSON.stringify({w,h,name,mpx,custom:(b.id==='customBtn')}));
     });
 
-    imgLeft.addEventListener('load', () => { imgLeft.style.visibility='visible'; backLeft.style.display='none'; updateAspectFrom(imgLeft); });
-    imgRight.addEventListener('load', () => { imgRight.style.visibility='visible'; backRight.style.display='none'; updateAspectFrom(imgRight); });
+    imgLeft.addEventListener('load',()=>{imgLeft.style.visibility='visible';backLeft.style.display='none';updateAspectFrom(imgLeft);});
+    imgRight.addEventListener('load',()=>{imgRight.style.visibility='visible';backRight.style.display='none';updateAspectFrom(imgRight);});
+    fileLeft.addEventListener('change',async()=>{const f=fileLeft.files[0];if(!f)return;await handleFile(f,'left');});
+    fileRight.addEventListener('change',async()=>{const f=fileRight.files[0];if(!f)return;await handleFile(f,'right');});
 
-    fileLeft.addEventListener('change', () => { const f=fileLeft.files[0]; if(!f) return; handleLocalFile(f,'left'); });
-    fileRight.addEventListener('change', () => { const f=fileRight.files[0]; if(!f) return; handleLocalFile(f,'right'); });
-
-    /* ===== Persistencia ===== */
-    function saveState(){
-      const pos = +getComputedStyle(root).getPropertyValue('--pos').replace('%','') || 50;
-      localStorage.setItem('viewer:pos', String(pos));
-    }
-    function restoreFromLocal(){
-      const pos = +(localStorage.getItem('viewer:pos') || '50'); setPosition(pos); range.value = pos;
-      const preset = JSON.parse(localStorage.getItem('viewer:preset')||'{}');
-      if (preset && preset.w && preset.h){ setPreset(preset.w, preset.h, preset.name||'Custom', preset.mpx||''); }
-      const custom = JSON.parse(localStorage.getItem('viewer:custom')||'null');
-      if (custom && custom.w && custom.h){ enableCustom(custom.w, custom.h); }
+    function savePos(){const pos=+getComputedStyle(root).getPropertyValue('--pos').replace('%','')||50;localStorage.setItem('viewer:pos',String(pos));}
+    function restoreLocal(){
+      const pos=+(localStorage.getItem('viewer:pos')||'50');setPosition(pos);range.value=pos;
+      const preset=JSON.parse(localStorage.getItem('viewer:preset')||'{}');
+      if(preset&&preset.w&&preset.h) setPreset(preset.w,preset.h,preset.name||'Custom',preset.mpx||'');
+      const custom=JSON.parse(localStorage.getItem('viewer:custom')||'null');
+      if(custom&&custom.w&&custom.h) enableCustom(custom.w,custom.h);
     }
 
-    /* ===== Hosting ===== */
-    async function uploadToCloudinary(fileOrBlob){
-      const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`;
-      const fd = new FormData();
-      fd.append('file', fileOrBlob);
-      fd.append('upload_preset', CLOUDINARY.uploadPreset);
-      // Opcional: transformar a webp para más liviano
-      // fd.append('format','webp');  // Cloudinary puede transcodificar según preset/transformaciones
-      const resp = await fetch(url, { method:'POST', body: fd });
-      if (!resp.ok) throw new Error('Cloud upload failed');
-      const json = await resp.json();
-      return json.secure_url || json.url;
+    function buildShortLink(){
+      if(!canShare()){ alert('Sharing is disabled. Enable "Shareable" and upload both images to generate a link.'); return null; }
+      const base=location.origin+location.pathname;
+      const pos=+getComputedStyle(root).getPropertyValue('--pos').replace('%','')||50;
+      const preset=JSON.parse(localStorage.getItem('viewer:preset')||'{}');
+      const ar=(preset&&preset.w&&preset.h)?`${preset.w}x${preset.h}`:'';
+      const hash=`#c=${encodeURIComponent(ids.left)},${encodeURIComponent(ids.right)};p=${pos}${ar?`;ar=${ar}`:''}`;
+      return base+hash;
     }
 
-    // Guardamos las URLs “hosteadas” para compartir
-    const hosted = { left:'', right:'' };
-    function setHosted(side, url){ hosted[side] = url; }
+    genLinkShortBtn.addEventListener('click',async()=>{
+      const link=buildShortLink(); if(!link) return;
+      await navigator.clipboard.writeText(link).catch(()=>{});
+      const old=genLinkShortBtn.textContent; genLinkShortBtn.textContent='Link copied!'; setTimeout(()=>genLinkShortBtn.textContent=old,1200);
+    });
 
-    /* ===== Share link ===== */
-    function canonicalUrl(){
-      try{ const u=new URL(window.location.href); u.search=''; return u.toString(); }
-      catch{ return window.location.href; }
-    }
-    function buildShareURL(){
-      const u  = new URL(canonicalUrl());
-      const pos = +getComputedStyle(root).getPropertyValue('--pos').replace('%','') || 50;
-      const preset = JSON.parse(localStorage.getItem('viewer:preset')||'{}');
-
-      // Preferimos URLs hosteadas; si no hay (porque no hay Cloudinary), caemos a dataURL actual
-      const l = hosted.left  || (imgLeft.src  || '');
-      const r = hosted.right || (imgRight.src || '');
-
-      const payload = {
-        l, r, p: pos,
-        pr: (preset && preset.w && preset.h) ? { w:preset.w, h:preset.h, n:preset.name||'', m:preset.mpx||'', c:!!preset.custom } : null
-      };
-      // Hash compacto (JSON→URI) — con hosting las URLs ya son cortas
-      u.hash = 'state=' + encodeURIComponent(JSON.stringify(payload));
-      return u.toString();
-    }
-
-    // Copiar iframe del propio viewer
     function embedSnippet(src){
       return `<iframe src="${src}" title="Render Compare by Joni Mercado" width="100%" height="600" style="border:0; background:#000;" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
     }
-    async function copyText(text){
-      try{ await navigator.clipboard.writeText(text); }
-      catch{
-        const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
-        ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-      }
-    }
-
-    genLinkEmbedBtn.addEventListener('click', async ()=>{
-      const link = buildShareURL();
-      await copyText(link);
-      const old=genLinkEmbedBtn.textContent; genLinkEmbedBtn.textContent='Link copied!'; setTimeout(()=>genLinkEmbedBtn.textContent=old,1200);
-    });
-    copyBtn.addEventListener('click', async () => {
-      await copyText(embedSnippet(canonicalUrl()));
+    copyBtn.addEventListener('click',async()=>{
+      const src=location.origin+location.pathname;
+      await navigator.clipboard.writeText(embedSnippet(src)).catch(()=>{});
       const old=copyBtn.textContent; copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent=old,1200);
     });
 
-    /* ===== Restaurar desde hash/local ===== */
-    function restoreFromHash(){
-      try{
-        const h = new URL(window.location.href).hash;
-        if(!h.startsWith('#state=')) return false;
-        const payload = JSON.parse(decodeURIComponent(h.replace('#state=','')));
-        if (payload.l) { setImg('left',  payload.l);  setHosted('left',  payload.l); }
-        if (payload.r) { setImg('right', payload.r);  setHosted('right', payload.r); }
-        if (payload.pr && payload.pr.w && payload.pr.h){
-          setPreset(payload.pr.w, payload.pr.h, payload.pr.n||'Custom', payload.pr.m||'');
-          if (payload.pr.c){ enableCustom(payload.pr.w, payload.pr.h); }
-        }
-        if (typeof payload.p === 'number'){ setPosition(payload.p); range.value = payload.p; }
-        return true;
-      }catch{ return false; }
-    }
-
-    // Init
     (function init(){
-      if (!restoreFromHash()){
-        restoreFromLocal();
-      }
-      if (!localStorage.getItem('viewer:pos')) setPosition(50);
+      shareableChk.checked = localStorage.getItem(SHARE_KEY)==='1';
+      updateShareHint(); refreshShareButton();
+      restoreLocal();
+      if(!localStorage.getItem('viewer:pos')) setPosition(50);
     })();
   </script>
 </body>
