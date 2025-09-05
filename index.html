@@ -17,6 +17,7 @@
       --text:#e5e7eb;
       --hint:rgba(255,255,255,.08);
       --hint-strong:rgba(255,255,255,.25);
+      --maxw: 1100px;    /* ancho máximo por defecto */
     }
     *{box-sizing:border-box}
     body{
@@ -30,20 +31,30 @@
     .brand h1{ margin:0; font-size:clamp(18px,3vw,28px); font-weight:700; }
     .brand .logo{ width:32px; height:32px; border-radius:6px; display:block; }
 
-    .uploader{display:flex; gap:18px; flex-wrap:wrap; width:100%; max-width:1100px}
+    /* Presets */
+    .presets{ display:flex; gap:8px; flex-wrap:wrap; width:100%; max-width:var(--maxw); align-items:center }
+    .presets button{
+      background:#111; color:#eee; border:1px solid #2a2a2a; border-radius:10px;
+      padding:.45rem .6rem; font-size:13px; cursor:pointer;
+    }
+    .presets button:hover{ background:#171717 }
+    .presets .info{ margin-left:auto; font-size:12px; color:#9aa4b2; }
+
+    .uploader{display:flex; gap:18px; flex-wrap:wrap; width:100%; max-width:var(--maxw)}
     .uploader label{display:flex; align-items:center; gap:8px}
 
+    .wrap{ width:100%; max-width:var(--maxw); }
+
     .compare{
-      position:relative; width:100%; max-width:1100px;
-      aspect-ratio:16/9;
+      position:relative; width:100%;
+      aspect-ratio:16/9;  /* se actualiza con los presets o imágenes */
       background:var(--panel); border-radius:14px; overflow:hidden;
       box-shadow:0 10px 28px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05);
-      user-select:none;
+      user-select:none; margin-top:6px;
     }
     .compare.dragging{ outline:2px dashed var(--hint-strong); outline-offset:-6px }
 
     /* ===== IMÁGENES / BACKS ===== */
-    /* Imagen derecha (base) */
     #imgRight, #backRightImg{
       position:absolute; inset:0; width:100%; height:100%;
       object-fit:cover; pointer-events:none;
@@ -53,20 +64,14 @@
       z-index:1; object-fit:contain; object-position:center; opacity:.5;
     }
 
-    /* Capa izquierda recortada por slider */
     .overlay{ position:absolute; inset:0; width:50%; overflow:hidden; z-index:3; }
-    /* Dentro de la overlay: primero el back, luego la imagen real */
     #backLeftImg, #imgLeft{
       position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
     }
-    #backLeftImg{
-      z-index:1; object-fit:contain; object-position:center; opacity:.5;
-    }
-    #imgLeft{
-      z-index:2; visibility:hidden; object-fit:cover; object-position:left center;
-    }
+    #backLeftImg{ z-index:1; object-fit:contain; object-position:center; opacity:.5; }
+    #imgLeft   { z-index:2; visibility:hidden; object-fit:cover; object-position:left center; }
 
-    /* ===== Slider ===== */
+    /* Slider */
     .divider{position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%);
       width:2px; background:rgba(255,255,255,.9); z-index:4}
     .handle{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -85,6 +90,11 @@
     .badge.left{left:10px}
     .badge.right{right:10px}
 
+    /* Resolución activa */
+    .res-badge{
+      margin-top:6px; font-size:12px; color:#9aa4b2;
+    }
+
     footer{margin-top:10px; font-size:12px; color:#888}
   </style>
 </head>
@@ -94,32 +104,44 @@
     <h1>Render Compare</h1>
   </div>
 
+  <!-- Presets de resolución -->
+  <div class="presets" id="presets">
+    <button data-w="1280" data-h="720"  data-name="HD"        data-mpx="0.92">HD</button>
+    <button data-w="1920" data-h="1080" data-name="Full HD"   data-mpx="2.07">Full HD</button>
+    <button data-w="2560" data-h="1440" data-name="QHD"       data-mpx="3.69">QHD</button>
+    <button data-w="3840" data-h="2160" data-name="4K UHDV"   data-mpx="8.29">4K UHDV</button>
+    <button data-w="7680" data-h="4800" data-name="WHUXGA"    data-mpx="36.86">WHUXGA</button>
+    <span class="info" id="resInfo">Aspect 16:9 • Max width 1100px</span>
+  </div>
+
   <div class="uploader">
     <label>Old Image: <input type="file" id="fileLeft"  accept="image/*"></label>
     <label>New Image: <input type="file" id="fileRight" accept="image/*"></label>
   </div>
 
-  <section class="compare" id="compare" aria-label="Image comparison">
-    <!-- BACK NEW (derecha, atrás) -->
-    <img id="backRightImg" src="./Backs/Logo_Alpha_black.png" alt="Default New">
-    <!-- Imagen real derecha -->
-    <img id="imgRight" alt="New image">
+  <div class="wrap">
+    <section class="compare" id="compare" aria-label="Image comparison">
+      <!-- BACK NEW (derecha) -->
+      <img id="backRightImg" src="./Backs/Logo_Alpha_black.png" alt="Default New">
+      <!-- Imagen real derecha -->
+      <img id="imgRight" alt="New image">
 
-    <!-- Capa izquierda con recorte (contiene back + imagen real) -->
-    <div class="overlay" id="overlay">
-      <!-- BACK OLD (izquierda, reaccionando al slider) -->
-      <img id="backLeftImg" src="./Backs/Logo_Alpha_white.png" alt="Default Old">
-      <!-- Imagen real izquierda -->
-      <img id="imgLeft" alt="Old image">
-    </div>
+      <!-- Capa izquierda (back + real) -->
+      <div class="overlay" id="overlay">
+        <img id="backLeftImg" src="./Backs/Logo_Alpha_white.png" alt="Default Old">
+        <img id="imgLeft" alt="Old image">
+      </div>
 
-    <span class="badge left">Old</span>
-    <span class="badge right">New</span>
+      <span class="badge left">Old</span>
+      <span class="badge right">New</span>
 
-    <div class="divider" id="divider"></div>
-    <div class="handle" id="handle" title="Drag">⇔</div>
-    <input id="range" class="range" type="range" min="0" max="100" value="50" />
-  </section>
+      <div class="divider" id="divider"></div>
+      <div class="handle" id="handle" title="Drag">⇔</div>
+      <input id="range" class="range" type="range" min="0" max="100" value="50" />
+    </section>
+
+    <div class="res-badge" id="resBadge">Viewer: 16:9 • Max width 1100px</div>
+  </div>
 
   <footer>Made by Joni Mercado</footer>
 
@@ -136,7 +158,11 @@
     const range = $('#range');
     const fileLeft = $('#fileLeft');
     const fileRight = $('#fileRight');
+    const resInfo = $('#resInfo');
+    const resBadge = $('#resBadge');
+    const presets = $('#presets');
 
+    /* ---- Slider ---- */
     function applyPosition(pct){
       overlay.style.width = pct + '%';
       divider.style.left = pct + '%';
@@ -144,22 +170,40 @@
     }
     applyPosition(50);
 
+    /* ---- Helpers ---- */
     function fileToDataURL(file, cb){
       const r = new FileReader();
       r.onload = e => cb(e.target.result);
       r.readAsDataURL(file);
     }
     function setImg(target, url){
-      if (target === 'left') imgLeft.src = url;
-      else imgRight.src = url;
+      if (target === 'left') imgLeft.src = url; else imgRight.src = url;
     }
     function updateAspectFrom(img){
       if (img.naturalWidth && img.naturalHeight) {
         compare.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
       }
     }
+    function setPreset(w, h, name, mpx){
+      // Cambiamos proporción del viewer
+      compare.style.aspectRatio = `${w} / ${h}`;
+      // Cambiamos ancho máximo del contenedor
+      document.documentElement.style.setProperty('--maxw', w + 'px');
+      // Texto informativo
+      const aspect = (w/h).toFixed(2);
+      resInfo.textContent = `${name} — ${w}×${h} • Aspect ${aspect}:1 • ${mpx} Mpx`;
+      resBadge.textContent = `Viewer: ${name} • ${w}×${h}`;
+    }
 
-    // Cuando cargan imágenes reales: mostrarlas y esconder backs de su lado
+    /* ---- Presets click ---- */
+    presets.addEventListener('click', (e)=>{
+      const b = e.target.closest('button[data-w]');
+      if(!b) return;
+      const w = +b.dataset.w, h = +b.dataset.h, name = b.dataset.name, mpx = b.dataset.mpx;
+      setPreset(w, h, name, mpx);
+    });
+
+    /* ---- Carga de imágenes reales (ocultan backs) ---- */
     imgLeft.addEventListener('load', () => {
       imgLeft.style.visibility = 'visible';
       backLeftImg.style.display = 'none';
@@ -171,7 +215,7 @@
       updateAspectFrom(imgRight);
     });
 
-    // Inputs de archivos
+    /* ---- Inputs de archivos ---- */
     fileLeft.addEventListener('change', () => {
       const f = fileLeft.files[0]; if(!f) return;
       fileToDataURL(f, url => setImg('left', url));
@@ -181,7 +225,7 @@
       fileToDataURL(f, url => setImg('right', url));
     });
 
-    // Slider drag
+    /* ---- Drag del slider ---- */
     range.addEventListener('input', e => applyPosition(e.target.value));
     let dragging = false;
     const setFromX = x => {
@@ -196,17 +240,15 @@
     window.addEventListener('touchmove', e => { if(dragging) setFromX(e.touches[0].clientX); }, {passive:true});
     window.addEventListener('touchend', () => dragging = false);
 
-    // Drag & Drop simple (opcional: pegar desde portapapeles si querés, lo podemos reañadir)
+    /* ---- Drag & Drop de imágenes ---- */
     compare.addEventListener('dragover', e => { e.preventDefault(); });
     compare.addEventListener('drop', e => {
       e.preventDefault();
       const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/'));
       if (!files.length) return;
-
       const rect = compare.getBoundingClientRect();
       const x = e.clientX ?? rect.left + rect.width/2;
       const leftHalf = (x - rect.left) / rect.width <= 0.5;
-
       if (files.length === 1){
         const target = leftHalf ? 'left' : 'right';
         fileToDataURL(files[0], url => setImg(target, url));
@@ -215,6 +257,9 @@
         fileToDataURL(files[1], url => setImg('right', url));
       }
     });
+
+    // Preset inicial (Full HD por defecto si querés)
+    // setPreset(1920,1080,'Full HD','2.07');
   </script>
 </body>
 </html>
