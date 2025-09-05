@@ -13,8 +13,8 @@
     :root{
       --bg:#000; --panel:#1a1a1a; --text:#e5e7eb;
       --hint:rgba(255,255,255,.25);
-      --maxw:1100px;      /* ancho máx viewer */
-      --pos:50%;          /* posición del slider */
+      --maxw:1100px;
+      --pos:50%;
     }
     *{box-sizing:border-box}
     body{
@@ -22,12 +22,10 @@
       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto;
       display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px;
     }
-
     .brand{ display:flex; align-items:center; gap:10px; margin:0 0 6px; width:100%; max-width:var(--maxw); }
     .brand h1{ margin:0; font-size:clamp(18px,3vw,28px); font-weight:700; }
     .brand .logo{ width:32px; height:32px; border-radius:6px; display:block; }
 
-    /* Presets + Custom */
     .presets{ display:flex; gap:8px; flex-wrap:wrap; width:100%; max-width:var(--maxw); align-items:center }
     .presets button{
       background:#111; color:#eee; border:1px solid #2a2a2a; border-radius:10px;
@@ -40,9 +38,7 @@
     .uploader{display:flex; gap:18px; flex-wrap:wrap; width:100%; max-width:var(--maxw)}
     .uploader label{display:flex; align-items:center; gap:8px}
 
-    .actions-line{
-      width:100%; max-width:var(--maxw); display:flex; gap:8px; justify-content:flex-end;
-    }
+    .actions-line{ width:100%; max-width:var(--maxw); display:flex; gap:8px; justify-content:flex-end; }
     .actions-line button{
       background:#111; color:#eee; border:1px solid #2a2a2a; border-radius:10px;
       padding:.45rem .6rem; font-size:13px; cursor:pointer;
@@ -59,27 +55,20 @@
       user-select:none; margin-top:6px;
     }
 
-    /* Capas a pantalla completa */
     .layer{ position:absolute; inset:0; z-index:1; }
     .layer img{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 
-    /* RIGHT = New (sin recorte) */
     #backRight { object-fit:contain; object-position:center; opacity:.5; z-index:1; }
     #imgRight  { object-fit:cover;   object-position:right center; visibility:hidden; z-index:2; }
 
-    /* LEFT = Old (recortado por clip-path) */
     #layerLeft{
       z-index:3;
       clip-path: polygon(0 0, var(--pos) 0, var(--pos) 100%, 0 100%);
     }
-    /* Fondo sólido para evitar “suma” con transparencias del Old */
-    .solid-bg-left{
-      position:absolute; inset:0; background:var(--panel); z-index:0;
-    }
+    .solid-bg-left{ position:absolute; inset:0; background:var(--panel); z-index:0; }
     #backLeft { object-fit:contain; object-position:center; opacity:.5; z-index:1; }
     #imgLeft  { object-fit:cover;   object-position:left center; visibility:hidden; z-index:2; }
 
-    /* Slider */
     .divider{
       position:absolute; top:0; bottom:0; left:var(--pos); transform:translateX(-50%);
       width:2px; background:rgba(255,255,255,.9); z-index:4; transition:opacity .15s;
@@ -96,7 +85,6 @@
     .compare.dragging .divider,
     .compare.dragging .handle { opacity:0; }
 
-    /* Labels */
     .badge{
       position:absolute; top:10px; padding:.38rem .6rem; font-size:13px; line-height:1;
       color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.08);
@@ -118,7 +106,6 @@
     <h1>Render Compare</h1>
   </div>
 
-  <!-- Presets de resolución -->
   <div class="presets" id="presets">
     <button data-w="1280" data-h="720"  data-name="HD"      data-mpx="0.92">HD</button>
     <button data-w="1920" data-h="1080" data-name="Full HD" data-mpx="2.07">Full HD</button>
@@ -129,27 +116,22 @@
     <span class="info" id="resInfo">Aspect 16:9 • Max width 1100px</span>
   </div>
 
-  <!-- Cargar por archivo -->
   <div class="uploader">
     <label>Old Image: <input type="file" id="fileLeft"  accept="image/*"></label>
     <label>New Image: <input type="file" id="fileRight" accept="image/*"></label>
   </div>
 
-  <!-- Acciones rápidas -->
   <div class="actions-line">
-    <button id="genLinkEmbed" type="button" title="Generate link embedding current images">Generate share link (embed images)</button>
-    <button id="copyEmbed" type="button" title="Copy iframe for this page">Copy embed code</button>
+    <button id="genLinkEmbed" type="button" title="Generate share link with hosted images">Generate share link</button>
+    <button id="copyEmbed"    type="button" title="Copy iframe for this page">Copy embed code</button>
   </div>
 
   <div class="wrap">
     <section class="compare" id="compare" aria-label="Image comparison">
-      <!-- Capa derecha: back + imagen NEW -->
       <div class="layer" id="layerRight">
         <img id="backRight" src="./Logo_Alpha_black.png" alt="Default New">
         <img id="imgRight"  alt="New image">
       </div>
-
-      <!-- Capa izquierda: fondo sólido + back + imagen OLD (recortada) -->
       <div class="layer" id="layerLeft">
         <div class="solid-bg-left"></div>
         <img id="backLeft" src="./Logo_Alpha_white.png" alt="Default Old">
@@ -170,6 +152,14 @@
   <footer>Made by <a href="https://www.jonatanmercado.com" target="_blank" rel="noopener noreferrer">Joni Mercado</a></footer>
 
   <script>
+    /*************** CLOUDINARY CONFIG (completar) ***************/
+    const CLOUDINARY = {
+      cloudName: '',          // <-- ej: 'demo'
+      uploadPreset: ''        // <-- ej: 'unsigned_preset'
+    };
+    const CLOUD_ENABLED = !!(CLOUDINARY.cloudName && CLOUDINARY.uploadPreset);
+    /*************************************************************/
+
     const $ = s => document.querySelector(s);
     const root = document.documentElement;
     const compare = $('#compare');
@@ -181,7 +171,7 @@
     const presets = $('#presets'), customBtn = $('#customBtn');
     const genLinkEmbedBtn = $('#genLinkEmbed'), copyBtn = $('#copyEmbed');
 
-    /* ========= Slider ========= */
+    /* ===== Slider ===== */
     function setPosition(pct){ root.style.setProperty('--pos', pct + '%'); saveState(); }
     range.addEventListener('input', e => setPosition(e.target.value));
     function setFromX(x){
@@ -198,7 +188,7 @@
     window.addEventListener('touchmove', e => { if(dragging) setFromX(e.touches[0].clientX); }, {passive:true});
     window.addEventListener('touchend', () => { dragging=false; compare.classList.remove('dragging'); });
 
-    /* ========= Drag & Drop de imágenes ========= */
+    /* ===== Drag & Drop ===== */
     compare.addEventListener('dragover', e => { e.preventDefault(); });
     compare.addEventListener('drop', e => {
       e.preventDefault();
@@ -207,23 +197,48 @@
       const rect = compare.getBoundingClientRect();
       const leftHalf = (e.clientX - rect.left) / rect.width <= 0.5;
       if (files.length === 1){
-        fileToDataURL(files[0], url => setImg(leftHalf ? 'left' : 'right', url));
+        handleLocalFile(files[0], leftHalf ? 'left' : 'right');
       } else {
-        fileToDataURL(files[0], url => setImg('left', url));
-        fileToDataURL(files[1], url => setImg('right', url));
+        handleLocalFile(files[0], 'left');
+        handleLocalFile(files[1], 'right');
       }
     });
 
-    /* ========= Helpers ========= */
-    function fileToDataURL(file, cb){ const r=new FileReader(); r.onload=e=>cb(e.target.result); r.readAsDataURL(file); }
-    function setImg(side, url){ (side==='left'? imgLeft: imgRight).src = url; }
-    function updateAspectFrom(img){
-      if (img.naturalWidth && img.naturalHeight) {
-        compare.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
-        enableCustom(img.naturalWidth, img.naturalHeight);
-        saveState();
+    /* ===== Helpers ===== */
+    function fileToDataURL(file){ return new Promise(res=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.readAsDataURL(file); }); }
+    async function handleLocalFile(file, side){
+      // preview inmediato
+      const dataUrl = await fileToDataURL(file);
+      setImg(side, dataUrl);
+      // subimos si hay Cloudinary
+      if (CLOUD_ENABLED){
+        try{
+          const hosted = await uploadToCloudinary(file);
+          setImg(side, hosted);
+          setHosted(side, hosted);
+        }catch(e){ console.warn('Upload failed', e); }
+      }else{
+        // sin hosting, mantenemos dataURL (link será más largo)
+        setHosted(side, dataUrl);
       }
     }
+    function setImg(side, url){ (side==='left'? imgLeft: imgRight).src = url; }
+    function updateAspectFrom(img){
+      if (img.naturalWidth && img.naturalHeight) setCustom(img.naturalWidth, img.naturalHeight);
+    }
+
+    // Recalcular Custom SIEMPRE que entra una imagen nueva
+    function setCustom(w, h){
+      compare.style.aspectRatio = `${w} / ${h}`;
+      root.style.setProperty('--maxw', w + 'px');
+      const aspect = (w/h).toFixed(2);
+      const mpx = (w*h/1e6).toFixed(2);
+      resInfo.textContent = `Custom — ${w}×${h} • Aspect ${aspect}:1 • ${mpx} Mpx`;
+      resBadge.textContent = `Viewer: Custom • ${w}×${h}`;
+      enableCustom(w, h);
+      localStorage.setItem('viewer:preset', JSON.stringify({ w, h, name:'Custom', mpx, custom:true }));
+    }
+
     function setPreset(w, h, name, mpx){
       compare.style.aspectRatio = `${w} / ${h}`;
       root.style.setProperty('--maxw', w + 'px');
@@ -240,7 +255,6 @@
       localStorage.setItem('viewer:custom', JSON.stringify({w,h}));
     }
 
-    /* ========= Presets ========= */
     presets.addEventListener('click', (e)=>{
       const b = e.target.closest('button[data-w]'); if(!b) return;
       const w = +b.dataset.w, h = +b.dataset.h, name = b.dataset.name, mpx = b.dataset.mpx;
@@ -248,15 +262,13 @@
       localStorage.setItem('viewer:preset', JSON.stringify({w,h,name,mpx,custom:(b.id==='customBtn')}));
     });
 
-    /* ========= Mostrar imágenes reales / ocultar backs ========= */
-    imgLeft.addEventListener('load', () => { imgLeft.style.visibility='visible'; backLeft.style.display='none'; if (!imgRight.src) updateAspectFrom(imgLeft); });
+    imgLeft.addEventListener('load', () => { imgLeft.style.visibility='visible'; backLeft.style.display='none'; updateAspectFrom(imgLeft); });
     imgRight.addEventListener('load', () => { imgRight.style.visibility='visible'; backRight.style.display='none'; updateAspectFrom(imgRight); });
 
-    /* ========= Inputs de archivos ========= */
-    fileLeft.addEventListener('change', () => { const f=fileLeft.files[0]; if(!f) return; fileToDataURL(f, url => setImg('left', url)); });
-    fileRight.addEventListener('change', () => { const f=fileRight.files[0]; if(!f) return; fileToDataURL(f, url => setImg('right', url)); });
+    fileLeft.addEventListener('change', () => { const f=fileLeft.files[0]; if(!f) return; handleLocalFile(f,'left'); });
+    fileRight.addEventListener('change', () => { const f=fileRight.files[0]; if(!f) return; handleLocalFile(f,'right'); });
 
-    /* ========= Persistencia ========= */
+    /* ===== Persistencia ===== */
     function saveState(){
       const pos = +getComputedStyle(root).getPropertyValue('--pos').replace('%','') || 50;
       localStorage.setItem('viewer:pos', String(pos));
@@ -269,11 +281,48 @@
       if (custom && custom.w && custom.h){ enableCustom(custom.w, custom.h); }
     }
 
-    /* ========= Copiar embed (sin mostrar código) ========= */
+    /* ===== Hosting ===== */
+    async function uploadToCloudinary(fileOrBlob){
+      const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`;
+      const fd = new FormData();
+      fd.append('file', fileOrBlob);
+      fd.append('upload_preset', CLOUDINARY.uploadPreset);
+      // Opcional: transformar a webp para más liviano
+      // fd.append('format','webp');  // Cloudinary puede transcodificar según preset/transformaciones
+      const resp = await fetch(url, { method:'POST', body: fd });
+      if (!resp.ok) throw new Error('Cloud upload failed');
+      const json = await resp.json();
+      return json.secure_url || json.url;
+    }
+
+    // Guardamos las URLs “hosteadas” para compartir
+    const hosted = { left:'', right:'' };
+    function setHosted(side, url){ hosted[side] = url; }
+
+    /* ===== Share link ===== */
     function canonicalUrl(){
       try{ const u=new URL(window.location.href); u.search=''; return u.toString(); }
       catch{ return window.location.href; }
     }
+    function buildShareURL(){
+      const u  = new URL(canonicalUrl());
+      const pos = +getComputedStyle(root).getPropertyValue('--pos').replace('%','') || 50;
+      const preset = JSON.parse(localStorage.getItem('viewer:preset')||'{}');
+
+      // Preferimos URLs hosteadas; si no hay (porque no hay Cloudinary), caemos a dataURL actual
+      const l = hosted.left  || (imgLeft.src  || '');
+      const r = hosted.right || (imgRight.src || '');
+
+      const payload = {
+        l, r, p: pos,
+        pr: (preset && preset.w && preset.h) ? { w:preset.w, h:preset.h, n:preset.name||'', m:preset.mpx||'', c:!!preset.custom } : null
+      };
+      // Hash compacto (JSON→URI) — con hosting las URLs ya son cortas
+      u.hash = 'state=' + encodeURIComponent(JSON.stringify(payload));
+      return u.toString();
+    }
+
+    // Copiar iframe del propio viewer
     function embedSnippet(src){
       return `<iframe src="${src}" title="Render Compare by Joni Mercado" width="100%" height="600" style="border:0; background:#000;" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
     }
@@ -284,74 +333,25 @@
         ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
       }
     }
+
+    genLinkEmbedBtn.addEventListener('click', async ()=>{
+      const link = buildShareURL();
+      await copyText(link);
+      const old=genLinkEmbedBtn.textContent; genLinkEmbedBtn.textContent='Link copied!'; setTimeout(()=>genLinkEmbedBtn.textContent=old,1200);
+    });
     copyBtn.addEventListener('click', async () => {
       await copyText(embedSnippet(canonicalUrl()));
       const old=copyBtn.textContent; copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent=old,1200);
     });
 
-    /* ========= Share link EMBEBIENDO las imágenes cargadas ========= */
-    async function toWebPDataURLFromImgElement(imgEl, maxW=1600, maxH=1600, quality=0.85){
-      // Si ya es data: y razonable, devolvemos directo
-      if (imgEl.src && imgEl.src.startsWith('data:')) return imgEl.src;
-      // Intento dibujar en canvas (si CORS lo permite)
-      return new Promise(resolve=>{
-        const img=new Image();
-        img.crossOrigin='anonymous';
-        img.onload=()=>{
-          let {width:w,height:h}=img;
-          const scale=Math.min(1, maxW/w, maxH/h);
-          const cw=Math.round(w*scale), ch=Math.round(h*scale);
-          const c=document.createElement('canvas'); c.width=cw; c.height=ch;
-          const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,cw,ch);
-          try{
-            const out=c.toDataURL('image/webp', quality);
-            resolve(out);
-          }catch{
-            // Si canvas quedó "tainted", no podemos exportar: usar URL original
-            resolve(imgEl.src);
-          }
-        };
-        img.onerror=()=>resolve(imgEl.src);
-        img.src=imgEl.src;
-      });
-    }
-
-    function currentPreset(){
-      const p = JSON.parse(localStorage.getItem('viewer:preset')||'{}');
-      return (p && p.w && p.h) ? p : null;
-    }
-
-    async function buildEmbeddedShareURL(){
-      const u  = new URL(canonicalUrl());
-      const pos = +getComputedStyle(root).getPropertyValue('--pos').replace('%','') || 50;
-
-      // Tomamos las imágenes cargadas (si no hay, dejamos backs by default)
-      const lData = imgLeft.src ? await toWebPDataURLFromImgElement(imgLeft) : '';
-      const rData = imgRight.src ? await toWebPDataURLFromImgElement(imgRight) : '';
-
-      const pr = currentPreset();
-      const payload = {
-        l: lData, r: rData, p: pos,
-        pr: pr ? {w:pr.w,h:pr.h,n:pr.name||'',m:pr.mpx||'',c:!!pr.custom} : null
-      };
-      u.hash = 'state=' + encodeURIComponent(JSON.stringify(payload));
-      return u.toString();
-    }
-
-    genLinkEmbedBtn.addEventListener('click', async ()=>{
-      const link = await buildEmbeddedShareURL();
-      await copyText(link);
-      const old=genLinkEmbedBtn.textContent; genLinkEmbedBtn.textContent='Link copied!'; setTimeout(()=>genLinkEmbedBtn.textContent=old,1200);
-    });
-
-    /* ========= Restaurar desde hash o local ========= */
+    /* ===== Restaurar desde hash/local ===== */
     function restoreFromHash(){
       try{
         const h = new URL(window.location.href).hash;
         if(!h.startsWith('#state=')) return false;
         const payload = JSON.parse(decodeURIComponent(h.replace('#state=','')));
-        if (payload.l) setImg('left',  payload.l);
-        if (payload.r) setImg('right', payload.r);
+        if (payload.l) { setImg('left',  payload.l);  setHosted('left',  payload.l); }
+        if (payload.r) { setImg('right', payload.r);  setHosted('right', payload.r); }
         if (payload.pr && payload.pr.w && payload.pr.h){
           setPreset(payload.pr.w, payload.pr.h, payload.pr.n||'Custom', payload.pr.m||'');
           if (payload.pr.c){ enableCustom(payload.pr.w, payload.pr.h); }
