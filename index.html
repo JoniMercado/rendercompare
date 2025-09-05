@@ -27,7 +27,7 @@
     .brand h1{ margin:0; font-size:clamp(18px,3vw,28px); font-weight:700; }
     .brand .logo{ width:32px; height:32px; border-radius:6px; display:block; }
 
-    /* Presets + Custom + acciones */
+    /* Presets + Custom */
     .presets{ display:flex; gap:8px; flex-wrap:wrap; width:100%; max-width:var(--maxw); align-items:center }
     .presets button{
       background:#111; color:#eee; border:1px solid #2a2a2a; border-radius:10px;
@@ -40,21 +40,14 @@
     .uploader{display:flex; gap:18px; flex-wrap:wrap; width:100%; max-width:var(--maxw)}
     .uploader label{display:flex; align-items:center; gap:8px}
 
-    /* URL inputs para compartir por link */
-    .urlbar{
-      width:100%; max-width:var(--maxw);
-      display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    .actions-line{
+      width:100%; max-width:var(--maxw); display:flex; gap:8px; justify-content:flex-end;
     }
-    .urlbar input{
-      flex:1 1 280px; background:#0f0f0f; color:#ddd; border:1px solid #2a2a2a; border-radius:8px; padding:8px;
-      font-size:13px;
-    }
-    .urlbar .actions{ display:flex; gap:8px; margin-left:auto; }
-    .urlbar button{
+    .actions-line button{
       background:#111; color:#eee; border:1px solid #2a2a2a; border-radius:10px;
       padding:.45rem .6rem; font-size:13px; cursor:pointer;
     }
-    .urlbar button:hover{ background:#171717 }
+    .actions-line button:hover{ background:#171717 }
 
     .wrap{ width:100%; max-width:var(--maxw); }
 
@@ -79,7 +72,7 @@
       z-index:3;
       clip-path: polygon(0 0, var(--pos) 0, var(--pos) 100%, 0 100%);
     }
-    /* Fondo sólido para evitar “sumas” con transparencias del Old */
+    /* Fondo sólido para evitar “suma” con transparencias del Old */
     .solid-bg-left{
       position:absolute; inset:0; background:var(--panel); z-index:0;
     }
@@ -142,15 +135,10 @@
     <label>New Image: <input type="file" id="fileRight" accept="image/*"></label>
   </div>
 
-  <!-- Cargar por URL (para compartir link) -->
-  <div class="urlbar">
-    <input id="urlLeft"  type="url" placeholder="Old Image URL (opcional, pública)">
-    <input id="urlRight" type="url" placeholder="New Image URL (opcional, pública)">
-    <div class="actions">
-      <button id="applyUrls" type="button">Load URLs</button>
-      <button id="genLink"  type="button">Generate share link</button>
-      <button id="copyEmbed" type="button">Copy embed code</button>
-    </div>
+  <!-- Acciones rápidas -->
+  <div class="actions-line">
+    <button id="genLinkEmbed" type="button" title="Generate link embedding current images">Generate share link (embed images)</button>
+    <button id="copyEmbed" type="button" title="Copy iframe for this page">Copy embed code</button>
   </div>
 
   <div class="wrap">
@@ -191,10 +179,9 @@
     const fileLeft = $('#fileLeft'), fileRight = $('#fileRight');
     const resInfo = $('#resInfo'), resBadge = $('#resBadge');
     const presets = $('#presets'), customBtn = $('#customBtn');
-    const urlLeft = $('#urlLeft'), urlRight = $('#urlRight');
-    const applyUrlsBtn = $('#applyUrls'), genLinkBtn = $('#genLink'), copyBtn = $('#copyEmbed');
+    const genLinkEmbedBtn = $('#genLinkEmbed'), copyBtn = $('#copyEmbed');
 
-    /* ========== Slider ========== */
+    /* ========= Slider ========= */
     function setPosition(pct){ root.style.setProperty('--pos', pct + '%'); saveState(); }
     range.addEventListener('input', e => setPosition(e.target.value));
     function setFromX(x){
@@ -211,13 +198,28 @@
     window.addEventListener('touchmove', e => { if(dragging) setFromX(e.touches[0].clientX); }, {passive:true});
     window.addEventListener('touchend', () => { dragging=false; compare.classList.remove('dragging'); });
 
-    /* ========== Helpers ========== */
+    /* ========= Drag & Drop de imágenes ========= */
+    compare.addEventListener('dragover', e => { e.preventDefault(); });
+    compare.addEventListener('drop', e => {
+      e.preventDefault();
+      const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/'));
+      if (!files.length) return;
+      const rect = compare.getBoundingClientRect();
+      const leftHalf = (e.clientX - rect.left) / rect.width <= 0.5;
+      if (files.length === 1){
+        fileToDataURL(files[0], url => setImg(leftHalf ? 'left' : 'right', url));
+      } else {
+        fileToDataURL(files[0], url => setImg('left', url));
+        fileToDataURL(files[1], url => setImg('right', url));
+      }
+    });
+
+    /* ========= Helpers ========= */
     function fileToDataURL(file, cb){ const r=new FileReader(); r.onload=e=>cb(e.target.result); r.readAsDataURL(file); }
     function setImg(side, url){ (side==='left'? imgLeft: imgRight).src = url; }
     function updateAspectFrom(img){
       if (img.naturalWidth && img.naturalHeight) {
         compare.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
-        // habilita Custom con la resolución detectada
         enableCustom(img.naturalWidth, img.naturalHeight);
         saveState();
       }
@@ -238,33 +240,43 @@
       localStorage.setItem('viewer:custom', JSON.stringify({w,h}));
     }
 
-    /* ========== Presets click ========== */
+    /* ========= Presets ========= */
     presets.addEventListener('click', (e)=>{
-      const b = e.target.closest('button[data-w]');
-      if(!b) return;
+      const b = e.target.closest('button[data-w]'); if(!b) return;
       const w = +b.dataset.w, h = +b.dataset.h, name = b.dataset.name, mpx = b.dataset.mpx;
       setPreset(w, h, name, mpx);
       localStorage.setItem('viewer:preset', JSON.stringify({w,h,name,mpx,custom:(b.id==='customBtn')}));
     });
 
-    /* ========== Mostrar imágenes reales y ocultar backs ========== */
+    /* ========= Mostrar imágenes reales / ocultar backs ========= */
     imgLeft.addEventListener('load', () => { imgLeft.style.visibility='visible'; backLeft.style.display='none'; if (!imgRight.src) updateAspectFrom(imgLeft); });
     imgRight.addEventListener('load', () => { imgRight.style.visibility='visible'; backRight.style.display='none'; updateAspectFrom(imgRight); });
 
-    /* ========== Inputs de archivos ========== */
+    /* ========= Inputs de archivos ========= */
     fileLeft.addEventListener('change', () => { const f=fileLeft.files[0]; if(!f) return; fileToDataURL(f, url => setImg('left', url)); });
     fileRight.addEventListener('change', () => { const f=fileRight.files[0]; if(!f) return; fileToDataURL(f, url => setImg('right', url)); });
 
-    /* ========== Cargar por URL (para compartir) ========== */
-    applyUrlsBtn.addEventListener('click', () => {
-      if (urlLeft.value)  setImg('left',  urlLeft.value.trim());
-      if (urlRight.value) setImg('right', urlRight.value.trim());
-      saveState();
-    });
+    /* ========= Persistencia ========= */
+    function saveState(){
+      const pos = +getComputedStyle(root).getPropertyValue('--pos').replace('%','') || 50;
+      localStorage.setItem('viewer:pos', String(pos));
+    }
+    function restoreFromLocal(){
+      const pos = +(localStorage.getItem('viewer:pos') || '50'); setPosition(pos); range.value = pos;
+      const preset = JSON.parse(localStorage.getItem('viewer:preset')||'{}');
+      if (preset && preset.w && preset.h){ setPreset(preset.w, preset.h, preset.name||'Custom', preset.mpx||''); }
+      const custom = JSON.parse(localStorage.getItem('viewer:custom')||'null');
+      if (custom && custom.w && custom.h){ enableCustom(custom.w, custom.h); }
+    }
 
-    /* ========== Copiar embed (sin mostrar código) ========== */
-    function canonicalUrl(){ try{ const u=new URL(window.location.href); u.search=''; return u.toString(); }catch{ return window.location.href; } }
-    function embedSnippet(src){ return `<iframe src="${src}" title="Render Compare by Joni Mercado" width="100%" height="600" style="border:0; background:#000;" loading="lazy" referrerpolicy="no-referrer"></iframe>`; }
+    /* ========= Copiar embed (sin mostrar código) ========= */
+    function canonicalUrl(){
+      try{ const u=new URL(window.location.href); u.search=''; return u.toString(); }
+      catch{ return window.location.href; }
+    }
+    function embedSnippet(src){
+      return `<iframe src="${src}" title="Render Compare by Joni Mercado" width="100%" height="600" style="border:0; background:#000;" loading="lazy" referrerpolicy="no-referrer"></iframe>`;
+    }
     async function copyText(text){
       try{ await navigator.clipboard.writeText(text); }
       catch{
@@ -277,41 +289,69 @@
       const old=copyBtn.textContent; copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent=old,1200);
     });
 
-    /* ========== Share link ========== */
-    function currentState(){
-      const preset = JSON.parse(localStorage.getItem('viewer:preset')||'{}');
-      return {
-        left:  urlLeft.value.trim()  || '',
-        right: urlRight.value.trim() || '',
-        pos:   +getComputedStyle(root).getPropertyValue('--pos').replace('%','') || 50,
-        preset
-      };
+    /* ========= Share link EMBEBIENDO las imágenes cargadas ========= */
+    async function toWebPDataURLFromImgElement(imgEl, maxW=1600, maxH=1600, quality=0.85){
+      // Si ya es data: y razonable, devolvemos directo
+      if (imgEl.src && imgEl.src.startsWith('data:')) return imgEl.src;
+      // Intento dibujar en canvas (si CORS lo permite)
+      return new Promise(resolve=>{
+        const img=new Image();
+        img.crossOrigin='anonymous';
+        img.onload=()=>{
+          let {width:w,height:h}=img;
+          const scale=Math.min(1, maxW/w, maxH/h);
+          const cw=Math.round(w*scale), ch=Math.round(h*scale);
+          const c=document.createElement('canvas'); c.width=cw; c.height=ch;
+          const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,cw,ch);
+          try{
+            const out=c.toDataURL('image/webp', quality);
+            resolve(out);
+          }catch{
+            // Si canvas quedó "tainted", no podemos exportar: usar URL original
+            resolve(imgEl.src);
+          }
+        };
+        img.onerror=()=>resolve(imgEl.src);
+        img.src=imgEl.src;
+      });
     }
-    function buildShareURL(){
-      const st = currentState();
+
+    function currentPreset(){
+      const p = JSON.parse(localStorage.getItem('viewer:preset')||'{}');
+      return (p && p.w && p.h) ? p : null;
+    }
+
+    async function buildEmbeddedShareURL(){
       const u  = new URL(canonicalUrl());
-      // Sólo usamos el hash para evitar recargas del servidor
+      const pos = +getComputedStyle(root).getPropertyValue('--pos').replace('%','') || 50;
+
+      // Tomamos las imágenes cargadas (si no hay, dejamos backs by default)
+      const lData = imgLeft.src ? await toWebPDataURLFromImgElement(imgLeft) : '';
+      const rData = imgRight.src ? await toWebPDataURLFromImgElement(imgRight) : '';
+
+      const pr = currentPreset();
       const payload = {
-        l: st.left, r: st.right, p: st.pos,
-        pr: st.preset && st.preset.w ? {w:st.preset.w,h:st.preset.h,n:st.preset.name||'',m:st.preset.mpx||'',c:!!st.preset.custom} : null
+        l: lData, r: rData, p: pos,
+        pr: pr ? {w:pr.w,h:pr.h,n:pr.name||'',m:pr.mpx||'',c:!!pr.custom} : null
       };
       u.hash = 'state=' + encodeURIComponent(JSON.stringify(payload));
       return u.toString();
     }
-    genLinkBtn.addEventListener('click', async ()=>{
-      const link = buildShareURL();
+
+    genLinkEmbedBtn.addEventListener('click', async ()=>{
+      const link = await buildEmbeddedShareURL();
       await copyText(link);
-      const old=genLinkBtn.textContent; genLinkBtn.textContent='Link copied!'; setTimeout(()=>genLinkBtn.textContent=old,1200);
+      const old=genLinkEmbedBtn.textContent; genLinkEmbedBtn.textContent='Link copied!'; setTimeout(()=>genLinkEmbedBtn.textContent=old,1200);
     });
 
-    /* ========== Restaurar desde hash o localStorage ========== */
+    /* ========= Restaurar desde hash o local ========= */
     function restoreFromHash(){
       try{
         const h = new URL(window.location.href).hash;
         if(!h.startsWith('#state=')) return false;
         const payload = JSON.parse(decodeURIComponent(h.replace('#state=','')));
-        if (payload.l) { urlLeft.value = payload.l;  setImg('left',  payload.l); }
-        if (payload.r) { urlRight.value= payload.r;  setImg('right', payload.r); }
+        if (payload.l) setImg('left',  payload.l);
+        if (payload.r) setImg('right', payload.r);
         if (payload.pr && payload.pr.w && payload.pr.h){
           setPreset(payload.pr.w, payload.pr.h, payload.pr.n||'Custom', payload.pr.m||'');
           if (payload.pr.c){ enableCustom(payload.pr.w, payload.pr.h); }
@@ -321,28 +361,11 @@
       }catch{ return false; }
     }
 
-    function saveState(){
-      const pos = +getComputedStyle(root).getPropertyValue('--pos').replace('%','') || 50;
-      localStorage.setItem('viewer:pos', String(pos));
-      // preset ya se guarda cuando se hace click o cuando enableCustom
-    }
-
-    function restoreFromLocal(){
-      const pos = +(localStorage.getItem('viewer:pos') || '50'); setPosition(pos); range.value = pos;
-      const preset = JSON.parse(localStorage.getItem('viewer:preset')||'{}');
-      if (preset && preset.w && preset.h){ setPreset(preset.w, preset.h, preset.name||'Custom', preset.mpx||''); }
-      const custom = JSON.parse(localStorage.getItem('viewer:custom')||'null');
-      if (custom && custom.w && custom.h){ enableCustom(custom.w, custom.h); }
-    }
-
-    // Inicialización
+    // Init
     (function init(){
-      // Si hay hash (link compartido), lo priorizamos
       if (!restoreFromHash()){
-        // Si no, restauramos preferencias del usuario
         restoreFromLocal();
       }
-      // Posición inicial por si no hay nada guardado
       if (!localStorage.getItem('viewer:pos')) setPosition(50);
     })();
   </script>
