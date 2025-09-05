@@ -26,9 +26,7 @@
     }
 
     /* Título con icono */
-    .brand{
-      display:flex; align-items:center; gap:10px; margin:0 0 6px;
-    }
+    .brand{ display:flex; align-items:center; gap:10px; margin:0 0 6px; }
     .brand h1{ margin:0; font-size:clamp(18px,3vw,28px); font-weight:700; }
     .brand .logo{ width:32px; height:32px; border-radius:6px; display:block; }
 
@@ -43,31 +41,32 @@
       user-select:none;
     }
     .compare.dragging{ outline:2px dashed var(--hint-strong); outline-offset:-6px }
-    .compare.dragging .drop-overlay{ opacity:1 }
 
-    /* BACKS por defecto */
-    .back{
-      position:absolute; top:0; bottom:0; width:50%;
-      display:flex; align-items:center; justify-content:center;
-      background-repeat:no-repeat; background-position:center center;
-      background-size:55% auto; opacity:.5; z-index:1;
-      pointer-events:none;
-    }
-    .back.left  { left:0; }
-    .back.right { left:50%; }
-
-    /* imágenes cargadas */
-    .compare img{
+    /* ===== IMÁGENES / BACKS ===== */
+    /* Imagen derecha (base) */
+    #imgRight, #backRightImg{
       position:absolute; inset:0; width:100%; height:100%;
-      object-fit:cover; pointer-events:none; visibility:hidden; z-index:2;
+      object-fit:cover; pointer-events:none;
     }
-    #imgLeft  { object-position:left  center; }
-    #imgRight { object-position:right center; }
+    #imgRight{ z-index:2; visibility:hidden; object-position:right center; }
+    #backRightImg{
+      z-index:1; object-fit:contain; object-position:center; opacity:.5;
+    }
 
-    /* capa izquierda recortada por el slider */
-    .overlay{position:absolute; inset:0; width:50%; overflow:hidden; z-index:3}
+    /* Capa izquierda recortada por slider */
+    .overlay{ position:absolute; inset:0; width:50%; overflow:hidden; z-index:3; }
+    /* Dentro de la overlay: primero el back, luego la imagen real */
+    #backLeftImg, #imgLeft{
+      position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
+    }
+    #backLeftImg{
+      z-index:1; object-fit:contain; object-position:center; opacity:.5;
+    }
+    #imgLeft{
+      z-index:2; visibility:hidden; object-fit:cover; object-position:left center;
+    }
 
-    /* slider */
+    /* ===== Slider ===== */
     .divider{position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%);
       width:2px; background:rgba(255,255,255,.9); z-index:4}
     .handle{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -77,7 +76,7 @@
     .range::-webkit-slider-thumb{appearance:none; width:1px; height:1px}
     .range::-moz-range-thumb{width:1px; height:1px; border:0}
 
-    /* labels dentro del viewer */
+    /* Labels */
     .badge{
       position:absolute; top:10px; padding:.38rem .6rem; font-size:13px; line-height:1;
       color:#fff; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.08);
@@ -86,27 +85,10 @@
     .badge.left{left:10px}
     .badge.right{right:10px}
 
-    /* overlay de drop */
-    .drop-overlay{
-      position:absolute; inset:0; display:grid; grid-template-columns:1fr 1fr;
-      opacity:0; transition:opacity .15s ease; pointer-events:none; z-index:6;
-    }
-    .drop-zone{
-      display:flex; align-items:flex-start; justify-content:space-between;
-      padding:10px;
-    }
-    .drop-zone span{
-      font-size:12px; color:#ddd; background:rgba(255,255,255,.07);
-      border:1px solid var(--hint); border-radius:10px; padding:.35rem .55rem;
-    }
-    .drop-left{ border-right:1px dashed var(--hint) }
-    .drop-right{ border-left:1px dashed var(--hint) }
-
     footer{margin-top:10px; font-size:12px; color:#888}
   </style>
 </head>
 <body>
-  <!-- Título con icono -->
   <div class="brand" aria-label="Render Compare">
     <img class="logo" src="./Logo_Rehecho_v7_avatar.png" alt="Logo" width="32" height="32">
     <h1>Render Compare</h1>
@@ -118,21 +100,22 @@
   </div>
 
   <section class="compare" id="compare" aria-label="Image comparison">
-    <!-- BACKS -->
-    <div class="back left"  id="backLeft"></div>
-    <div class="back right" id="backRight"></div>
+    <!-- BACK NEW (derecha, atrás) -->
+    <img id="backRightImg" src="./Backs/Logo_Alpha_black.png" alt="Default New">
+    <!-- Imagen real derecha -->
+    <img id="imgRight" alt="New image">
 
-    <!-- imágenes -->
-    <img id="imgRight" alt="New image" />
+    <!-- Capa izquierda con recorte (contiene back + imagen real) -->
     <div class="overlay" id="overlay">
-      <img id="imgLeft" alt="Old image" />
+      <!-- BACK OLD (izquierda, reaccionando al slider) -->
+      <img id="backLeftImg" src="./Backs/Logo_Alpha_white.png" alt="Default Old">
+      <!-- Imagen real izquierda -->
+      <img id="imgLeft" alt="Old image">
     </div>
 
-    <!-- labels -->
     <span class="badge left">Old</span>
     <span class="badge right">New</span>
 
-    <!-- slider -->
     <div class="divider" id="divider"></div>
     <div class="handle" id="handle" title="Drag">⇔</div>
     <input id="range" class="range" type="range" min="0" max="100" value="50" />
@@ -143,20 +126,16 @@
   <script>
     const $ = s => document.querySelector(s);
     const compare = $('#compare');
+    const overlay = $('#overlay');
     const imgLeft = $('#imgLeft');
     const imgRight = $('#imgRight');
-    const overlay = $('#overlay');
+    const backLeftImg = $('#backLeftImg');
+    const backRightImg = $('#backRightImg');
     const divider = $('#divider');
     const handle = $('#handle');
     const range = $('#range');
     const fileLeft = $('#fileLeft');
     const fileRight = $('#fileRight');
-    const backLeft  = $('#backLeft');
-    const backRight = $('#backRight');
-
-    // Apuntar a la carpeta "Backs" (ojo mayúscula)
-    backLeft.style.backgroundImage  = "url('./Backs/Logo_Alpha_white.png')";
-    backRight.style.backgroundImage = "url('./Backs/Logo_Alpha_black.png')";
 
     function applyPosition(pct){
       overlay.style.width = pct + '%';
@@ -171,25 +150,28 @@
       r.readAsDataURL(file);
     }
     function setImg(target, url){
-      if (target === 'left') imgLeft.src = url; else imgRight.src = url;
+      if (target === 'left') imgLeft.src = url;
+      else imgRight.src = url;
     }
     function updateAspectFrom(img){
       if (img.naturalWidth && img.naturalHeight) {
         compare.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
       }
     }
-    function revealOnLoad(img, side){
-      img.addEventListener('load', () => {
-        img.style.visibility = 'visible';
-        if (side === 'left')  backLeft.style.display  = 'none';
-        if (side === 'right') backRight.style.display = 'none';
-        if (side === 'right') updateAspectFrom(imgRight); else if (!imgRight.src) updateAspectFrom(imgLeft);
-      }, { once:true });
-    }
-    revealOnLoad(imgLeft, 'left');
-    revealOnLoad(imgRight, 'right');
 
-    // Inputs
+    // Cuando cargan imágenes reales: mostrarlas y esconder backs de su lado
+    imgLeft.addEventListener('load', () => {
+      imgLeft.style.visibility = 'visible';
+      backLeftImg.style.display = 'none';
+      if (!imgRight.src) updateAspectFrom(imgLeft);
+    });
+    imgRight.addEventListener('load', () => {
+      imgRight.style.visibility = 'visible';
+      backRightImg.style.display = 'none';
+      updateAspectFrom(imgRight);
+    });
+
+    // Inputs de archivos
     fileLeft.addEventListener('change', () => {
       const f = fileLeft.files[0]; if(!f) return;
       fileToDataURL(f, url => setImg('left', url));
@@ -199,7 +181,7 @@
       fileToDataURL(f, url => setImg('right', url));
     });
 
-    // Slider
+    // Slider drag
     range.addEventListener('input', e => applyPosition(e.target.value));
     let dragging = false;
     const setFromX = x => {
@@ -214,26 +196,15 @@
     window.addEventListener('touchmove', e => { if(dragging) setFromX(e.touches[0].clientX); }, {passive:true});
     window.addEventListener('touchend', () => dragging = false);
 
-    // Drag & Drop
-    ['dragenter','dragover'].forEach(ev =>
-      compare.addEventListener(ev, e => {
-        e.preventDefault(); e.stopPropagation();
-        compare.classList.add('dragging');
-      })
-    );
-    ['dragleave','drop'].forEach(ev =>
-      compare.addEventListener(ev, e => {
-        if (ev === 'dragleave' && e.target !== compare) return;
-        compare.classList.remove('dragging');
-      })
-    );
+    // Drag & Drop simple (opcional: pegar desde portapapeles si querés, lo podemos reañadir)
+    compare.addEventListener('dragover', e => { e.preventDefault(); });
     compare.addEventListener('drop', e => {
       e.preventDefault();
       const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/'));
       if (!files.length) return;
 
       const rect = compare.getBoundingClientRect();
-      const x = e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? (rect.left + rect.width/2);
+      const x = e.clientX ?? rect.left + rect.width/2;
       const leftHalf = (x - rect.left) / rect.width <= 0.5;
 
       if (files.length === 1){
@@ -243,16 +214,6 @@
         fileToDataURL(files[0], url => setImg('left', url));
         fileToDataURL(files[1], url => setImg('right', url));
       }
-    });
-
-    // Paste desde el portapapeles
-    window.addEventListener('paste', e => {
-      const items = [...(e.clipboardData?.items || [])];
-      const imgItem = items.find(i => i.type.startsWith('image/'));
-      if (!imgItem) return;
-      const file = imgItem.getAsFile(); if (!file) return;
-      const target = imgLeft.src ? 'right' : 'left';
-      fileToDataURL(file, url => setImg(target, url));
     });
   </script>
 </body>
