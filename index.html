@@ -144,7 +144,9 @@
     const genLinkShortBtn=$('#genLinkShort'),copyBtn=$('#copyEmbed');
 
     const SHARE_KEY='viewer:shareable';
-    const ids={left:'',right:''};
+
+    // IDs ahora guardan public_id + version
+    const ids={ left:{id:'',v:''}, right:{id:'',v:''} };
 
     /* Shareable UI */
     function updateShareHint(){
@@ -152,7 +154,7 @@
         ? 'Shareable ON — new images will upload publicly for short links.'
         : 'Shareable OFF — images stay local; sharing disabled.';
     }
-    function canShare(){ return shareableChk.checked && ids.left && ids.right; }
+    function canShare(){ return shareableChk.checked && ids.left.id && ids.right.id; }
     function refreshShareButton(){
       genLinkShortBtn.disabled=!canShare();
       genLinkShortBtn.title=canShare()
@@ -167,7 +169,7 @@
         if(!ok){shareableChk.checked=false;}
       }
       localStorage.setItem(SHARE_KEY,shareableChk.checked?'1':'0');
-      if(!shareableChk.checked){ids.left='';ids.right='';}
+      if(!shareableChk.checked){ids.left={id:'',v:''};ids.right={id:'',v:''};}
       updateShareHint(); refreshShareButton();
     });
 
@@ -203,22 +205,34 @@
     function fileToDataURL(file){return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}
     async function uploadToCloudinary(file){
       const url=`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`;
-      const fd=new FormData(); fd.append('file',file); fd.append('upload_preset',CLOUDINARY.uploadPreset);
+      const fd=new FormData();
+      fd.append('file',file);
+      fd.append('upload_preset',CLOUDINARY.uploadPreset);
+      // opcional: fd.append('folder','rendercompare');
       const resp=await fetch(url,{method:'POST',body:fd});
       if(!resp.ok) throw new Error('Upload failed');
-      return resp.json(); // { public_id, secure_url, ... }
+      return resp.json(); // { public_id, version, secure_url, ... }
     }
     async function handleFile(file,side){
       const dataUrl=await fileToDataURL(file); setImg(side,dataUrl);
       if(shareableChk.checked){
         try{
           const res=await uploadToCloudinary(file);
-          const id=res.public_id; ids[side]=id; setImg(side,CLOUD_BASE+id);
-        }catch(e){alert('Upload failed'); ids[side]='';}
-      } else { ids[side]=''; }
+          ids[side]={ id:res.public_id, v:String(res.version||'') };
+          const url=CLOUD_BASE+(ids[side].v?`v${ids[side].v}/`:'')+ids[side].id;
+          setImg(side,url);
+        }catch(e){ alert('Upload failed'); ids[side]={id:'',v:''}; }
+      } else { ids[side]={id:'',v:''}; }
       refreshShareButton();
     }
     function setImg(side,url){ (side==='left'?imgLeft:imgRight).src=url; }
+
+    // (Debug opcional) alerta si falla carga de imagen
+    function attachErrorDebugger(imgEl,label){
+      imgEl.onerror=()=>{ const tried=imgEl.src; console.warn(`[${label}] failed`, tried); alert(`${label} image failed to load:\n${tried}\n\nVerificá public_id, versión y carpeta.`); };
+    }
+    attachErrorDebugger(imgLeft,'Old');
+    attachErrorDebugger(imgRight,'New');
 
     /* Aspect / presets */
     function setCustom(w,h){
@@ -259,14 +273,19 @@
       if(custom&&custom.w&&custom.h) enableCustom(custom.w,custom.h);
     }
 
-    /* Build short link */
+    /* Build short link (incluye version) */
     function buildShortLink(){
       if(!canShare()){ alert('Sharing is disabled. Enable "Shareable" and upload both images to generate a link.'); return null; }
       const base=location.origin+location.pathname;
       const pos=+getComputedStyle(root).getPropertyValue('--pos').replace('%','')||50;
       const preset=JSON.parse(localStorage.getItem('viewer:preset')||'{}');
       const ar=(preset&&preset.w&&preset.h)?`${preset.w}x${preset.h}`:'';
-      const hash=`#c=${encodeURIComponent(ids.left)},${encodeURIComponent(ids.right)};p=${pos}${ar?`;ar=${ar}`:''}`;
+
+      const c = `${encodeURIComponent(ids.left.id)},${encodeURIComponent(ids.right.id)}`;
+      const v = `${encodeURIComponent(ids.left.v||'')},${encodeURIComponent(ids.right.v||'')}`;
+
+      // ejemplo: #c=folder%2Fabc,def;p=47;ar=1024x820;v=1725551111,1725551112
+      const hash=`#c=${c};p=${pos}${ar?`;ar=${ar}`:''};v=${v}`;
       return base+hash;
     }
     genLinkShortBtn.addEventListener('click',async()=>{
@@ -285,7 +304,7 @@
       const old=copyBtn.textContent; copyBtn.textContent='Copied!'; setTimeout(()=>copyBtn.textContent=old,1200);
     });
 
-    /* Restore from short hash: #c=<l>,<r>;p=NN;ar=WxH */
+    /* Restore from short hash: #c=<l>,<r>;p=NN;ar=WxH;v=vL,vR */
     function restoreFromHash(){
       const raw = location.hash.replace(/^#/, '');
       if (!raw || !raw.startsWith('c=')) return false;
@@ -298,8 +317,18 @@
       );
 
       const [lId, rId] = (parts.c || '').split(',');
-      if (lId) { ids.left  = lId; setImg('left',  CLOUD_BASE + lId); }
-      if (rId) { ids.right = rId; setImg('right', CLOUD_BASE + rId); }
+      const [lV,  rV ] = (parts.v || ',').split(','); // puede venir vacío
+
+      if (lId) {
+        ids.left = { id: lId, v: (lV||'').trim() };
+        const urlL = CLOUD_BASE + (ids.left.v ? `v${ids.left.v}/` : '') + ids.left.id;
+        setImg('left', urlL);
+      }
+      if (rId) {
+        ids.right = { id: rId, v: (rV||'').trim() };
+        const urlR = CLOUD_BASE + (ids.right.v ? `v${ids.right.v}/` : '') + ids.right.id;
+        setImg('right', urlR);
+      }
 
       if (parts.p){
         const p = Math.max(0, Math.min(100, +parts.p || 50));
@@ -318,8 +347,6 @@
           localStorage.setItem('viewer:custom', JSON.stringify({ w, h }));
         }
       }
-      // Al abrir desde link, aunque shareable esté OFF, hay imágenes hosteadas,
-      // así que permitimos habilitar el botón si el usuario enciende Shareable después.
       refreshShareButton();
       return true;
     }
